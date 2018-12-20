@@ -1,0 +1,9 @@
+  restart: unless-stopped
+  image: devops_image
+  volumes:
+    - /var/log/supervisor/:/var/log/supervisor/
+    - /root/ops_scripts:/root/ops_scripts
+    - /sys/fs/cgroup:/sys/fs/cgroup
+  ports:
+    - "8888:80"
+  environment:
