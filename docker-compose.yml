@@ -1,9 +1,11 @@
+task_scheduler:
   restart: unless-stopped
-  image: devops_image
+  image: task_scheduler_image
   volumes:
     - /var/log/supervisor/:/var/log/supervisor/
+    - /var/www/task_scheduler:/var/www/task_scheduler/
     - /root/ops_scripts:/root/ops_scripts
     - /sys/fs/cgroup:/sys/fs/cgroup
   ports:
-    - "8888:80"
+    - "8020:80"
   environment:

@@ -16,7 +16,6 @@ expire_seconds = 365 * 24 * 60 * 60
 cookie_secret = '61oETzKXQAGaYdkL5gEmGeJJFuYh7EQnp2X6TP1o/Vo='
 token_secret = "pXFb4i%*834gfdh96(3df&%18iodGq4ODQyMzc4lz7yI6ImF1dG"
 secret_key = '8b888a62-3edb-4920-b446-697a472b4001'
-login_mail = "shinezone.com"
 
 DEFAULT_DB_DBHOST = os.getenv('DEFAULT_DB_DBHOST', '172.16.0.223')
 DEFAULT_DB_DBPORT = os.getenv('DEFAULT_DB_DBPORT', '3306')
@@ -55,8 +54,7 @@ settings = dict(
     token_secret=token_secret,
     secret_key=secret_key,
     expire_seconds=expire_seconds,
-    app_name='do_admin',
-    login_mail=login_mail,
+    app_name='task_scheduler',
     databases={
         const.DEFAULT_DB_KEY: {
             const.DBHOST_KEY: DEFAULT_DB_DBHOST,
