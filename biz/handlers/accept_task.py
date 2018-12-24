@@ -71,7 +71,10 @@ def create_task(**data_info):
             group_list.append(g)
             host = hosts.get(g)
             if not host:
-                return dict(code=-4, msg="The host cannot be empty")
+                return dict(code=-4, msg="The exec host cannot be empty")
+
+            if len(host.split(',')) >100:
+                return dict(code=-4, msg="Too many hosts, please execute in groups")
 
             for ip in host.split(','):
                 if not re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', ip):

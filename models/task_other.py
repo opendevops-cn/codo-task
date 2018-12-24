@@ -71,11 +71,3 @@ class TaskPublishConfig(Base):
     k8s_api   = Column('k8s_api', String(200))            ### K8S API地址
     namespace = Column('namespace', String(80))           ### 命名空间
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间
-
-
-
-from sqlalchemy import create_engine
-
-engine = create_engine('mysql+pymysql://root:ljXrcyn7chaBU4F@172.16.0.223:3306/shenshuo?charset=utf8', encoding='utf-8',
-                       echo=True)
-Base.metadata.create_all(engine)

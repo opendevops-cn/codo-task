@@ -38,7 +38,6 @@ class TaskListHandler(BaseHandler):
             user_list = []
             for i in list(literal_eval(data_dict.get("associated_user")).values()):
                 user_list.extend(i)
-            print(username,nickname,self.is_superuser)
             if username in user_list or nickname in user_list or self.is_superuser:
                 data_dict['create_time'] = str(data_dict['create_time'])
                 data_dict['start_time'] = str(data_dict['start_time'])
@@ -247,11 +246,6 @@ class TaskCheckHandler(BaseHandler):
 
         elif hand_type == "restart":
             with DBContext('w', None, True) as session:
-                data_info = session.query(TaskSched.task_level, TaskSched.task_status).filter(
-                    TaskSched.list_id == list_id,
-                    TaskSched.task_group == task_group,
-                    TaskSched.exec_ip == exec_ip).all()
-
                 session.query(TaskSched).filter(TaskSched.list_id == list_id, TaskSched.task_group == task_group,
                                                 TaskSched.exec_ip == exec_ip, TaskSched.task_status != '5',
                                                 TaskSched.task_status != '7',
@@ -260,6 +254,11 @@ class TaskCheckHandler(BaseHandler):
                                                 TaskSched.exec_ip == exec_ip, TaskSched.task_status != '5',
                                                 TaskSched.task_status != '7',
                                                 TaskSched.task_level < task_level).update({TaskSched.task_status: '3'})
+
+                data_info = session.query(TaskSched.task_level, TaskSched.task_status).filter(
+                    TaskSched.list_id == list_id,
+                    TaskSched.task_group == task_group,
+                    TaskSched.exec_ip == exec_ip).all()
             level_status = {}
             for s in data_info:
                 if s[1] not in ['5', '7']:
@@ -274,12 +273,12 @@ class TaskCheckHandler(BaseHandler):
             return self.write(dict(code=0, msg='重新执行成功'))
         elif hand_type == "stop_one":
             with DBContext('w', None, True) as session:
+                session.query(TaskSched).filter(TaskSched.list_id == list_id, TaskSched.task_group == task_group,
+                                                TaskSched.exec_ip == exec_ip).update({TaskSched.task_status: '3'})
+
                 data_info = session.query(TaskSched.task_level).filter(TaskSched.list_id == list_id,
                                                                        TaskSched.task_group == task_group,
                                                                        TaskSched.exec_ip == exec_ip).all()
-
-                session.query(TaskSched).filter(TaskSched.list_id == list_id, TaskSched.task_group == task_group,
-                                                TaskSched.exec_ip == exec_ip).update({TaskSched.task_status: '3'})
             level_status = {}
             for s in data_info:
                 level_status[s[0]] = '3'
@@ -333,7 +332,7 @@ def get_task_info(list_id, task_group, exec_ip, this_host_list):
 class HistoryListHandler(BaseHandler):
     def get(self, *args, **kwargs):
         page_size = self.get_argument('page', default=1, strip=True)
-        limit = self.get_argument('limit', default=15, strip=True)
+        limit = self.get_argument('limit', default=500, strip=True)
         limit_start = (int(page_size) - 1) * int(limit)
         task_list = []
         this_list = []
@@ -341,7 +340,7 @@ class HistoryListHandler(BaseHandler):
         with DBContext('r') as session:
             count = session.query(TaskList).filter(TaskList.schedule == 'OK').count()
             task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
-                -TaskList.start_time, -TaskList.list_id).offset(limit_start).limit(int(limit))
+             -TaskList.list_id).offset(limit_start).limit(int(limit))
 
         for msg in task_info:
             data_dict = model_to_dict(msg)
@@ -350,9 +349,8 @@ class HistoryListHandler(BaseHandler):
             this_list.append(data_dict.get("list_id"))
             task_list.append(data_dict)
 
-        list_id = "" if len(this_list) < 1 else this_list[0]
 
-        return self.write(dict(code=0, msg="获取成功", data=task_list, count=count, history=True, list_id=list_id))
+        return self.write(dict(code=0, msg="获取成功", data=task_list, count=count, history=True))
 
 
 # class TaskLogHandler(BaseHandler):
@@ -393,6 +391,7 @@ class HistoryListHandler(BaseHandler):
 task_list_urls = [
     (r"/v2/task/list/", TaskListHandler),
     (r"/v2/task/check/", TaskCheckHandler),
+    (r"/v2/task/check_history/", HistoryListHandler),
     # (r"/v1/task/log/", TaskLogHandler),
     # (r"/v1/task/log/(\d*)/", ListLogHandler),
 ]

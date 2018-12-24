@@ -24,7 +24,7 @@ class Application(myApplication):
         urls.extend(accept_task_urls)
         urls.extend(task_log_urls)
         urls.extend(other_urls)
-        tailed_callback = tornado.ioloop.PeriodicCallback(tail_data, 1000)
+        tailed_callback = tornado.ioloop.PeriodicCallback(tail_data, 500)
         tailed_callback.start()
         super(Application, self).__init__(urls, **settings)
 

@@ -159,9 +159,3 @@ class ExecuteUser(Base):
 
 if __name__ == '__main__':
     pass
-
-from sqlalchemy import create_engine
-
-engine = create_engine('mysql+pymysql://root:ljXrcyn7chaBU4F@172.16.0.223:3306/shenshuo?charset=utf8', encoding='utf-8',
-                       echo=True)
-Base.metadata.create_all(engine)

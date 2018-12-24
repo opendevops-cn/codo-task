@@ -4,8 +4,7 @@ task_scheduler:
   volumes:
     - /var/log/supervisor/:/var/log/supervisor/
     - /var/www/task_scheduler:/var/www/task_scheduler/
-    - /root/ops_scripts:/root/ops_scripts
+    - /opt/ops_scripts:/opt/ops_scripts
     - /sys/fs/cgroup:/sys/fs/cgroup
   ports:
     - "8020:80"
-  environment:

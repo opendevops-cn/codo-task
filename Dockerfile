@@ -24,10 +24,13 @@ RUN pip3 install --upgrade pip
 RUN pip3 install -U git+https://github.com/ss1917/ops_sdk.git
 RUN pip3 install -r /var/www/task_scheduler/doc/requirements.txt
 
-# 6. 日志
+# 6. 初始化生成表结构
+RUN python3 /var/www/do_cron/db_sync.py
+
+# 7. 日志
 VOLUME /var/log/
 
-# 7. 准备文件
+# 8. 准备文件
 COPY doc/nginx_ops.conf /etc/nginx/conf.d/default.conf
 COPY doc/supervisor_ops.conf  /etc/supervisord.conf
 

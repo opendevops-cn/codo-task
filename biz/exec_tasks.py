@@ -11,9 +11,9 @@ role   : exec tasks
 """
 
 import subprocess
-import sys
-from concurrent.futures import ProcessPoolExecutor as Pool
-from concurrent.futures import wait
+# import sys
+# from concurrent.futures import ProcessPoolExecutor as Pool
+# from concurrent.futures import wait
 import multiprocessing
 import json
 import time
@@ -203,8 +203,8 @@ class MyExecute:
 
             time.sleep(int_sleep)
             int_sleep += 5
-            if int_sleep > 30:
-                int_sleep = 30
+            if int_sleep > 20:
+                int_sleep = 20
 
             ### 检查订单状态 如果全部都完成就退出
             if self.check_group('all') == '3':
@@ -234,13 +234,14 @@ class MyExecute:
                                      force_host=task_cmd_info.get('force_host'), exec_ip=task_cmd_info.get('exec_ip'))
 
                     status_list = self.redis_conn.hvals(hash_key)
+
                     this_status = self.redis_conn.hget(hash_key, i)
                     print('组：',self.group_id, '优先级', i, status_list, this_status)
                     ### 当前的状态如是为手动干预，中断,或 包含错误状态 则跳出循环
                     if b'5' == this_status or b'6' == this_status or b'4' in status_list:
                         break
 
-                    ### 定时任务则判断是否可以开始
+                    ### 定时任务则判断是否可以开始,如果可以开始则修改缓存数据
                     if b'7' == this_status:
                         start_time = self.redis_conn.get('task_id_{}_start_time'.format(self.flow_id))
                         if time.mktime(datetime.datetime.now().timetuple()) > float(start_time.decode('utf8')):
@@ -250,7 +251,7 @@ class MyExecute:
                             break
 
                     ### 当前状态为等待执行和当前执行队列没有失败
-                    if this_status == b'1':
+                    if this_status == b'1' and  b'4' not in status_list:
                         ### 修改状态为运行中
                         with DBContext('w') as session:
                             session.query(TaskSched).filter(TaskSched.list_id == self.flow_id,
@@ -292,19 +293,19 @@ class MyExecute:
         for join_t in threads:
             join_t.join()
 
-    def exec_thread_new(self):
-        ### 取所有主机 最多启动100个进程
-        pool_num = len(self.all_exec_ip.split(','))
-        if pool_num > 100:
-            pool_num = 100
-        with Pool(max_workers=pool_num) as executor:
-            future_tasks = [executor.submit(self.exec_main, the_ip) for the_ip in self.all_exec_ip.split(',')]
-
-        results = wait(future_tasks)
-        print(results)
-        print('主线程')
-
-        print('pool_num: {0} {1} task list-{2} group-{3}'.format(pool_num, 'xx', self.flow_id, self.group_id))
+    # def exec_thread_new(self):
+    #     ### 取所有主机 最多启动100个进程
+    #     pool_num = len(self.all_exec_ip.split(','))
+    #     if pool_num > 100:
+    #         pool_num = 100
+    #     with Pool(max_workers=pool_num) as executor:
+    #         future_tasks = [executor.submit(self.exec_main, the_ip) for the_ip in self.all_exec_ip.split(',')]
+    #
+    #     results = wait(future_tasks)
+    #     print(results)
+    #     print('主线程')
+    #
+    #     print('pool_num: {0} {1} task list-{2} group-{3}'.format(pool_num, 'xx', self.flow_id, self.group_id))
 
 
 if __name__ == "__main__":
