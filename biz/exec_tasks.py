@@ -11,9 +11,6 @@ role   : exec tasks
 """
 
 import subprocess
-# import sys
-# from concurrent.futures import ProcessPoolExecutor as Pool
-# from concurrent.futures import wait
 import multiprocessing
 import json
 import time

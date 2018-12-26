@@ -10,8 +10,8 @@ RUN yum update -y && yum install epel-release -y && yum update -y && yum install
 #WORKDIR /var/www/
 
 # 2. 准备python
-RUN wget https://www.python.org/ftp/python/3.6.4/Python-3.6.4.tar.xz
-RUN xz -d Python-3.6.4.tar.xz && tar xvf Python-3.6.4.tar && cd Python-3.6.4 && ./configure && make && make install
+RUN wget https://www.python.org/ftp/python/3.6.6/Python-3.6.6.tar.xz
+RUN xz -d Python-3.6.6.tar.xz && tar xvf Python-3.6.6.tar && cd Python-3.6.6 && ./configure && make && make install
 
 # 3. 安装yum依赖
 
