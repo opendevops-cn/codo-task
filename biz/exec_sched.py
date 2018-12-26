@@ -17,7 +17,8 @@ from ast import literal_eval
 from websdk.web_logs import ins_log
 from biz.exec_tasks import MyExecute
 from models.scheduler import TaskList, TaskSched, ExecuteUser, model_to_dict
-from websdk.db_context import DBContext
+# from websdk.db_context import DBContext
+from libs.db_context import DBContext
 from websdk.configs import configs
 from websdk.mqhelper import MessageQueueBase
 from websdk.cache_context import cache_conn
@@ -58,7 +59,7 @@ class DealMQ(MessageQueueBase):
                 raise SystemExit('message timeout')
 
         ### 标记为任务开始，判断任务是否审批(schedule等于ready)
-        with DBContext('w', None, True) as session:
+        with DBContext('w') as session:
             session.query(TaskList.list_id).filter(TaskList.list_id == lid, TaskList.schedule == 'ready').update(
                 {TaskList.schedule: 'start'})
 
@@ -155,7 +156,7 @@ class DealMQ(MessageQueueBase):
                 ### 多进程分组执行任务
                 self.exec_list_thread(flow_id, *all_group)
                 ### 记录并修改状态
-                with DBContext('w', None, True) as session:
+                with DBContext('w') as session:
                     session.query(TaskList.list_id).filter(TaskList.list_id == flow_id).update(
                         {TaskList.schedule: 'OK'})
 
