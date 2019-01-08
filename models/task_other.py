@@ -70,4 +70,5 @@ class TaskPublishConfig(Base):
     docker_registry  = Column('docker_registry', String(200))         ### docker 镜像仓库地址
     k8s_api   = Column('k8s_api', String(200))            ### K8S API地址
     namespace = Column('namespace', String(80))           ### 命名空间
+    mail_to = Column('mail_to', String(500))              ### 任务中邮件发送人
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间

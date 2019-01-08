@@ -27,7 +27,7 @@ def get_db_engine(db_key):
     dbname = db_conf['name']
     return create_engine('mysql+pymysql://{user}:{pwd}@{host}:{port}/{dbname}?charset=utf8'
                          .format(user=dbuser, pwd=quote_plus(dbpwd), host=dbhost, port=dbport, dbname=dbname),
-                         logging_name=db_key, pool_size=15, pool_timeout=120)
+                         logging_name=db_key, pool_size=10)
 
 class DBContext(object):
     def __init__(self, rw='r', db_key=None):
