@@ -6,8 +6,9 @@ date   : 2017年10月17日17:23:19
 desc   : 任务调度模板管理
 """
 import json, datetime
-from libs.base_handler import BaseHandler,LivenessProbe
+from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
+from websdk.base_handler import LivenessProbe
 from models.scheduler import CommandList, TempList, TempDetails, ArgsList, TempToUser, ExecuteUser, model_to_dict
 
 
