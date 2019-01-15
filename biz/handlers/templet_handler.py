@@ -6,7 +6,7 @@ date   : 2017年10月17日17:23:19
 desc   : 任务调度模板管理
 """
 import json, datetime
-from libs.base_handler import BaseHandler
+from libs.base_handler import BaseHandler,LivenessProbe
 from websdk.db_context import DBContext
 from models.scheduler import CommandList, TempList, TempDetails, ArgsList, TempToUser, ExecuteUser, model_to_dict
 
@@ -329,6 +329,7 @@ temp_urls = [
     (r"/v2/task_layout/details/", TempDetailsHandler),
     (r"/v2/task_layout/args/", ArgsHandler),
     (r"/v2/task_layout/user/", ExecutiveUserHandler),
+    (r"/are_you_ok/", LivenessProbe),
 ]
 
 if __name__ == "__main__":

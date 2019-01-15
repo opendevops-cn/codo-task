@@ -59,6 +59,7 @@ class TaskPublishConfig(Base):
     temp_name  = Column('temp_name', String(30))  ### 任务模板
     publish_type1 = Column('publish_type1', String(20))  ### 简单  灰度  蓝绿
     publish_path = Column('publish_path', String(35))   ### 发布路径
+    config_file = Column('config_file', String(500))    ### 配置文件
     publish_hosts = Column('publish_hosts', String(400))  ### 发布主机
     publish_hosts_api = Column('publish_hosts_api', String(120))  ### 发布主机
     bucket_type = Column('bucket_type', String(20))  ### 存储桶信息
@@ -68,7 +69,8 @@ class TaskPublishConfig(Base):
     SecretID =  Column('SecretID', String(60))  ###
     SecretKey =  Column('SecretKey', String(120))  ###
     docker_registry  = Column('docker_registry', String(200))         ### docker 镜像仓库地址
-    k8s_api   = Column('k8s_api', String(200))            ### K8S API地址
-    namespace = Column('namespace', String(80))           ### 命名空间
-    mail_to = Column('mail_to', String(500))              ### 任务中邮件发送人
+    k8s_api   = Column('k8s_api', String(200))                ### K8S API地址
+    k8s_host = Column('k8s_host', String(30))                 ### K8S master地址
+    namespace = Column('namespace', String(80))               ### 命名空间
+    mail_to = Column('mail_to', String(500))                  ### 任务中邮件发送人
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间

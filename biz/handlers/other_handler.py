@@ -9,7 +9,6 @@ Desc    : 其他
 
 import json
 import datetime
-from ast import literal_eval
 from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
 from models.task_other import TaskCodeRepository, DockerRegistry, TaskPublishConfig, model_to_dict
@@ -183,6 +182,7 @@ class PublishCDHandler(BaseHandler):
         try:
             publish_hosts = data.get('publish_hosts')
             publish_path = data.get('publish_path')
+            config_file = data.get('config_file')
             publish_hosts_api = data.get('publish_hosts_api')
             bucket_type = data.get('bucket_type')
             region = data.get('region')
@@ -192,6 +192,7 @@ class PublishCDHandler(BaseHandler):
             SecretKey = data.get('SecretKey')
             docker_registry = data.get('docker_registry')
             k8s_api = data.get('k8s_api')
+            k8s_host = data.get('k8s_host')
             namespace = data.get('namespace')
             mail_to = data.get('mail_to')
 
@@ -199,11 +200,12 @@ class PublishCDHandler(BaseHandler):
                 session.add(TaskPublishConfig(publish_name=publish_name, publish_type=publish_type,
                                               build_host=build_host, repository=repository, temp_name=temp_name,
                                               exclude_file=exclude_file, publish_hosts=publish_hosts,
-                                              publish_path=publish_path, publish_hosts_api=publish_hosts_api,
+                                              publish_path=publish_path, config_file=config_file,
+                                              publish_hosts_api=publish_hosts_api,
                                               bucket_type=bucket_type, region=region, bucket_name=bucket_name,
                                               bucket_path=bucket_path, SecretID=SecretID, SecretKey=SecretKey,
-                                              docker_registry=docker_registry, k8s_api=k8s_api, namespace=namespace,
-                                              mail_to=mail_to))
+                                              docker_registry=docker_registry, k8s_api=k8s_api, k8s_host=k8s_host,
+                                              namespace=namespace, mail_to=mail_to))
             return self.write(dict(code=0, msg='添加新应用成功'))
         except Exception as e:
             print(e)
@@ -226,6 +228,7 @@ class PublishCDHandler(BaseHandler):
         try:
             publish_hosts = data.get('publish_hosts')
             publish_path = data.get('publish_path')
+            config_file = data.get('config_file')
             publish_hosts_api = data.get('publish_hosts_api')
             bucket_type = data.get('bucket_type')
             region = data.get('region')
@@ -235,6 +238,7 @@ class PublishCDHandler(BaseHandler):
             SecretKey = data.get('SecretKey')
             docker_registry = data.get('docker_registry')
             k8s_api = data.get('k8s_api')
+            k8s_host = data.get('k8s_host')
             namespace = data.get('namespace')
             mail_to = data.get('mail_to')
 
@@ -246,6 +250,7 @@ class PublishCDHandler(BaseHandler):
                      TaskPublishConfig.exclude_file: exclude_file,
                      TaskPublishConfig.publish_hosts: publish_hosts,
                      TaskPublishConfig.publish_path: publish_path,
+                     TaskPublishConfig.config_file: config_file,
                      TaskPublishConfig.publish_hosts_api: publish_hosts_api,
                      TaskPublishConfig.bucket_type: bucket_type,
                      TaskPublishConfig.region: region,
@@ -255,6 +260,7 @@ class PublishCDHandler(BaseHandler):
                      TaskPublishConfig.SecretKey: SecretKey,
                      TaskPublishConfig.docker_registry: docker_registry,
                      TaskPublishConfig.k8s_api: k8s_api,
+                     TaskPublishConfig.k8s_host: k8s_host,
                      TaskPublishConfig.namespace: namespace,
                      TaskPublishConfig.mail_to: mail_to,
                      })
@@ -304,7 +310,7 @@ class PublishListHandler(BaseHandler):
                     response = await http_client.fetch(publish_hosts_api, raise_error=False,
                                                        headers=self.request.headers)
                     if response.code == 200:
-                        response_data = literal_eval(response.body.decode('utf-8'))
+                        response_data = json.loads(response.body.decode('utf-8'))
                         if response_data:
                             for res in response_data['data']['server_list']:
                                 if res.get('ip'):
@@ -374,8 +380,36 @@ class MySqlOptimize(BaseHandler):
         args_dict = dict(PUBLISH_NAME=publish_name, DB_NAME=db_name, SQLS='"{}"'.format(sqls))
         hosts_dict = {1: config_info.build_host}
         data_info = dict(exec_time=start_time, temp_id=temp_id, task_name=publish_name,
-                         task_type=config_info.temp_name,submitter=self.get_current_nickname(),
+                         task_type=config_info.temp_name, submitter=self.get_current_nickname(),
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='ready', details='', )
+
+        return_data = acc_create_task(**data_info)
+        return self.write(return_data)
+
+
+class MySqlAudit(BaseHandler):
+    def post(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        publish_name = data.get('publish_name', None)
+        temp_id = data.get('temp_id', None)
+        db_file = data.get('db_file', None)
+        start_time = data.get('start_time', None)
+        print(data)
+        start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=8)
+        if not publish_name or not db_file or not temp_id or not start_time:
+            return self.write(dict(code=-1, msg='必填项不能为空'))
+
+        with DBContext('r') as session:
+            config_info = session.query(TaskPublishConfig).filter(
+                TaskPublishConfig.publish_name == publish_name).first()
+            if not temp_id:
+                return self.write(dict(code=-1, msg='关联的任务模板有误，快去检查！'))
+
+        args_dict = dict(PUBLISH_NAME=publish_name, DB_FILE=db_file)
+        hosts_dict = {1: config_info.build_host}
+        data_info = dict(exec_time=start_time, temp_id=temp_id, task_name=publish_name,
+                         task_type=config_info.temp_name, submitter=self.get_current_nickname(),
+                         associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='', )
 
         return_data = acc_create_task(**data_info)
         return self.write(return_data)
@@ -387,6 +421,7 @@ other_urls = [
     (r"/v2/task_other/publish_cd/", PublishCDHandler),
     (r"/v2/task_other/publish_list/", PublishListHandler),
     (r"/v2/task_other/mysql_optimize/", MySqlOptimize),
+    (r"/v2/task_other/mysql_audit/", MySqlAudit),
 ]
 
 if __name__ == "__main__":
