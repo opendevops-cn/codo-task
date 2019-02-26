@@ -14,7 +14,6 @@ debug = True
 xsrf_cookies = False
 expire_seconds = 365 * 24 * 60 * 60
 cookie_secret = '61oETzKXQAGaYdkL5gEmGeJJFuYh7EQnp2X6TP1o/Vo='
-token_secret = "pXFb4i%*834gfdh96(3df&%18iodGq4ODQyMzc4lz7yI6ImF1dG"
 
 DEFAULT_DB_DBHOST = os.getenv('DEFAULT_DB_DBHOST', '172.16.0.223')
 DEFAULT_DB_DBPORT = os.getenv('DEFAULT_DB_DBPORT', '3306')
@@ -50,7 +49,6 @@ settings = dict(
     debug=debug,
     xsrf_cookies=xsrf_cookies,
     cookie_secret=cookie_secret,
-    token_secret=token_secret,
     expire_seconds=expire_seconds,
     app_name='task_scheduler',
     databases={
