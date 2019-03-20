@@ -81,7 +81,7 @@ class TaskMonitor(Base):
     call_level = Column('call_level', Integer)
     call_info = Column('call_info', String(300))
     call_status = Column('call_status', Integer)
-    call_users = Column('call_users', String(50))
+    call_users = Column('call_users', String(500))
     ctime = Column('ctime', DateTime(), default=datetime.now)
 
 

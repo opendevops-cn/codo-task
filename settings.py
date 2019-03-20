@@ -40,6 +40,9 @@ DEFAULT_MQ_VHOST = '/'
 DEFAULT_MQ_USER = os.getenv('DEFAULT_MQ_USER', 'yz')
 DEFAULT_MQ_PWD = os.getenv('DEFAULT_MQ_PWD', 'vuz84B2IkbEtXWF')
 
+### 阿里大鱼 注册
+sign_name = '自动化',
+template_code = 'SMS_136397944',
 try:
     from local_settings import *
 except:
@@ -50,7 +53,9 @@ settings = dict(
     xsrf_cookies=xsrf_cookies,
     cookie_secret=cookie_secret,
     expire_seconds=expire_seconds,
-    app_name='task_scheduler',
+    sign_name=sign_name,
+    template_code=template_code,
+    app_name='codo_task_scheduler',
     databases={
         const.DEFAULT_DB_KEY: {
             const.DBHOST_KEY: DEFAULT_DB_DBHOST,

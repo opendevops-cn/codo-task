@@ -12,6 +12,11 @@ create database `do_task` default character set utf8mb4 collate utf8mb4_unicode_
 - 对settings 里面的配置文件进行修改
 - 修改 doc/nginx_ops.conf 的server_name  例如 改为 task.opendevops.cn
 - 修改 doc/supervisor_ops.conf 内容来控制进程数量
+#### 注意事项
+
+- log_record 此进程为录入任务执行日志 启动一个进程即可
+- cron_jobs 定时任务刷新websocket日志  错误报警使用， 一个进程即可
+
 #### 编译镜像
 ```bash
 docker build . -t task_scheduler_image
