@@ -336,19 +336,31 @@ class HistoryListHandler(BaseHandler):
         limit_start = (int(page_size) - 1) * int(limit)
         task_list = []
         this_list = []
+        username = self.get_current_user()
+        nickname = self.get_current_nickname()
 
         with DBContext('r') as session:
             count = session.query(TaskList).filter(TaskList.schedule == 'OK').count()
             task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
              -TaskList.list_id).offset(limit_start).limit(int(limit))
 
+        # for msg in task_info:
+        #     data_dict = model_to_dict(msg)
+        #     data_dict['create_time'] = str(data_dict['create_time'])
+        #     data_dict['start_time'] = str(data_dict['start_time'])
+        #     this_list.append(data_dict.get("list_id"))
+        #     task_list.append(data_dict)
+
         for msg in task_info:
             data_dict = model_to_dict(msg)
-            data_dict['create_time'] = str(data_dict['create_time'])
-            data_dict['start_time'] = str(data_dict['start_time'])
-            this_list.append(data_dict.get("list_id"))
-            task_list.append(data_dict)
-
+            user_list = []
+            for i in list(literal_eval(data_dict.get("associated_user")).values()):
+                user_list.extend(i)
+            if username in user_list or nickname in user_list or self.is_superuser:
+                data_dict['create_time'] = str(data_dict['create_time'])
+                data_dict['start_time'] = str(data_dict['start_time'])
+                this_list.append(data_dict.get("list_id"))
+                task_list.append(data_dict)
 
         return self.write(dict(code=0, msg="获取成功", data=task_list, count=count, history=True))
 

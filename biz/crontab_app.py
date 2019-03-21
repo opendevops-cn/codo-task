@@ -15,7 +15,7 @@ from .alert_tasks import send_alarm
 class Application(myApplication):
     def __init__(self, **settings):
         urls = []
-        alert_callback = tornado.ioloop.PeriodicCallback(send_alarm, 60000)
+        alert_callback = tornado.ioloop.PeriodicCallback(send_alarm, 600)
         alert_callback.start()
         tailed_callback = tornado.ioloop.PeriodicCallback(tail_data, 500)
         tailed_callback.start()

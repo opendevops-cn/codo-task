@@ -15,7 +15,7 @@ from models.scheduler import TaskList, TaskMonitor
 from websdk.configs import configs
 from websdk.db_context import DBContext
 from websdk.cache_context import cache_conn
-from websdk.tools import convert
+from websdk.tools import convert, exec_shell
 
 
 def send_alarm():
@@ -77,27 +77,32 @@ def send_alarm():
     #               mail_password=config_info.get(const.EMAIL_HOST_PASSWORD),
     #               mail_ssl=True if config_info.get(const.EMAIL_USE_SSL) == '1' else False)
 
-
     ### 发送短信实例化
     sms = SendSms(config_info.get(const.SMS_REGION), config_info.get(const.SMS_DOMAIN),
-                      config_info.get(const.SMS_PRODUCT_NAME), config_info.get(const.SMS_ACCESS_KEY_ID),
-                      config_info.get(const.SMS_ACCESS_KEY_SECRET))
+                  config_info.get(const.SMS_PRODUCT_NAME), config_info.get(const.SMS_ACCESS_KEY_ID),
+                  config_info.get(const.SMS_ACCESS_KEY_SECRET))
     for i in my_call:
         sms_to_list = []
         email_to_list = []
         for user in i.call_users.split(','):
-            info__contact = convert(redis_conn.hgetall(bytes(user  +'__contact', encoding='utf-8')))
+            info__contact = convert(redis_conn.hgetall(bytes(user + '__contact', encoding='utf-8')))
             if info__contact:
                 sms_to_list.append(info__contact['tel'])
                 email_to_list.append(info__contact['email'])
-        print(sms_to_list,email_to_list,  i.call_info)
+        print(sms_to_list, email_to_list, i.call_info)
         ### 发送邮件
         # sm.send_mail(",".join(email_to_list), '自动化订单', i.call_info)
-        ### 发送短信
-        params = {"msg": i.call_info}  # 对应短信模板里设置的参数
-        sms.send_sms(phone_numbers=",".join(sms_to_list), template_param=params,
-                     sign_name=configs.get('sign_name')[0], template_code=configs.get('template_code')[0])
 
+        ### 以下为注释为单独报警的示例,具体根据自己的需求修改
+        # import sys
+        # sys.path.append(sys.path[0])
+        # print(exec_shell('python3 alert.py {} {}'.format(",".join(sms_to_list), i.call_info)))
+
+        ### 发送短信
+        if sms_to_list:
+            params = {"msg": i.call_info}  # 对应短信模板里设置的参数
+            sms.send_sms(phone_numbers=",".join(sms_to_list), template_param=params,
+                         sign_name=configs.get('sign_name')[0], template_code=configs.get('template_code')[0])
 
     ### 发送完禁用
     with DBContext('w', None, True, **configs) as session:
