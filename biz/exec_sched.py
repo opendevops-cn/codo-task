@@ -78,9 +78,10 @@ class DealMQ(MessageQueueBase):
             ### 管理用户信息
             for msg in exec_user_info:
                 data_dict = model_to_dict(msg)
-                exec_user_dict[data_dict.get("exec_user") + "port"] = data_dict.get("ssh_port", "22")
-                exec_user_dict[data_dict.get("exec_user") + "password"] = data_dict.get("password", "")
-                key_file = "/home/.ssh_key/{}_key".format(data_dict.get("exec_user"))
+                exec_user_dict[data_dict.get("alias_user")] = data_dict.get("exec_user")
+                exec_user_dict[data_dict.get("alias_user") + "port"] = data_dict.get("ssh_port", "22")
+                exec_user_dict[data_dict.get("alias_user") + "password"] = data_dict.get("password", "")
+                key_file = "/home/.ssh_key/{}_key".format(data_dict.get("alias_user"))
                 if not os.path.exists('/home/.ssh_key/'):
                     os.makedirs('/home/.ssh_key/')
                 with open(key_file, 'w') as k_file:
@@ -95,7 +96,7 @@ class DealMQ(MessageQueueBase):
                 for msg in sched_task_info:
                     data_dict = model_to_dict(msg)
                     log_key = "{}_{}_{}_{}".format(lid, data_dict["task_group"], data_dict["task_level"],
-                                                data_dict["exec_ip"])
+                                                   data_dict["exec_ip"])
                     task_info_key = "task_info_{}".format(log_key)
                     level_status_key = "level_status_{}".format(log_key)
 

@@ -150,7 +150,8 @@ class ExecuteUser(Base):
 
     ### 执行用户
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    exec_user = Column('exec_user', String(35), unique=True, default='root')
+    alias_user = Column('alias_user', String(80), unique=True,nullable=False)
+    exec_user = Column('exec_user', String(35), default='root')
     ssh_port = Column('ssh_port', Integer, default=22)
     password = Column('password', String(100))
     user_key = Column('user_key',  Text())

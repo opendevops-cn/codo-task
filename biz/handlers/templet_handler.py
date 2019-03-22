@@ -277,26 +277,36 @@ class ExecutiveUserHandler(BaseHandler):
 
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
+        alias_user = data.get('alias_user', None)
         exec_user = data.get('exec_user', None)
         ssh_port = data.get('ssh_port', None)
         user_key = data.get('user_key', None)
         remarks = data.get('remarks', None)
 
-        if not exec_user or not ssh_port or not user_key:
+        if not alias_user or not exec_user or not ssh_port or not user_key:
             return self.write(dict(code=-1, msg='参数不能为空'))
 
+        if check_contain_chinese(alias_user):
+            return self.write(dict(code=-1, msg='名称不能有汉字'))
+
+        if check_contain_chinese(exec_user):
+            return self.write(dict(code=-1, msg='名称不能有汉字'))
+
         with DBContext('r') as session:
-            args_exist = session.query(ExecuteUser.id).filter(ExecuteUser.exec_user == exec_user).first()
-        if args_exist:
+            alias_exist = session.query(ExecuteUser.id).filter(ExecuteUser.alias_user == alias_user).first()
+
+        if alias_exist:
             return self.write(dict(code=-2, msg='名称不能重复'))
 
         with DBContext('w', None, True) as session:
-            session.add(ExecuteUser(exec_user=exec_user, ssh_port=ssh_port, user_key=user_key, remarks=remarks))
+            session.add(ExecuteUser(alias_user=alias_user, exec_user=exec_user, ssh_port=ssh_port, user_key=user_key,
+                                    remarks=remarks))
         return self.write(dict(code=0, msg='添加成功'))
 
     def put(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
         exec_user_id = data.get('id', None)
+        alias_user = data.get('alias_user', None)
         exec_user = data.get('exec_user', None)
         ssh_port = data.get('ssh_port', None)
         user_key = data.get('user_key', None)
@@ -305,8 +315,21 @@ class ExecutiveUserHandler(BaseHandler):
         if not exec_user or not user_key:
             return self.write(dict(code=-1, msg='不能为空'))
 
+        if check_contain_chinese(alias_user):
+            return self.write(dict(code=-1, msg='名称不能有汉字'))
+
+        if check_contain_chinese(exec_user):
+            return self.write(dict(code=-1, msg='名称不能有汉字'))
+
+        with DBContext('r') as session:
+            alias_exist = session.query(ExecuteUser.id).filter(ExecuteUser.alias_user == alias_user).first()
+
+        if alias_exist:
+            return self.write(dict(code=-2, msg='名称不能重复'))
+
         with DBContext('w', None, True) as session:
-            session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).update({ExecuteUser.exec_user: exec_user,
+            session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).update({ExecuteUser.alias_user: alias_user,
+                                                                                      ExecuteUser.exec_user: exec_user,
                                                                                       ExecuteUser.ssh_port: ssh_port,
                                                                                       ExecuteUser.user_key: user_key,
                                                                                       ExecuteUser.remarks: remarks})
@@ -323,6 +346,12 @@ class ExecutiveUserHandler(BaseHandler):
             session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).delete(synchronize_session=False)
         self.write(dict(code=0, msg='删除成功'))
 
+
+def check_contain_chinese(check_str):
+    for ch in check_str:
+        if u'\u4e00' <= ch <= u'\u9fff':
+            return True
+    return False
 
 temp_urls = [
     (r"/v2/task_layout/command/", CommandHandler),

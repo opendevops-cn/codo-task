@@ -344,13 +344,6 @@ class HistoryListHandler(BaseHandler):
             task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
              -TaskList.list_id).offset(limit_start).limit(int(limit))
 
-        # for msg in task_info:
-        #     data_dict = model_to_dict(msg)
-        #     data_dict['create_time'] = str(data_dict['create_time'])
-        #     data_dict['start_time'] = str(data_dict['start_time'])
-        #     this_list.append(data_dict.get("list_id"))
-        #     task_list.append(data_dict)
-
         for msg in task_info:
             data_dict = model_to_dict(msg)
             user_list = []

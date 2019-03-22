@@ -166,9 +166,11 @@ class MyExecute:
         if real_host == "127.0.0.1":
             real_cmd = my_cmd
         else:
-            exec_user = info.get("exec_user")
-            ssh_port = self.exec_user_dict.get(exec_user + "port")
-            key_file = "/home/.ssh_key/{}_key".format(info.get("exec_user"))
+            ### 别名具有唯一性
+            alias_user = info.get("exec_user")
+            exec_user =self.exec_user_dict.get(alias_user)
+            ssh_port = self.exec_user_dict.get(alias_user + "port")
+            key_file = "/home/.ssh_key/{}_key".format(alias_user)
             real_cmd = "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ServerAliveInterval=60 -o ConnectTimeout=5" \
                        " -i {} -p {} {}@{} '{}'".format(key_file, ssh_port, exec_user, real_host, my_cmd)
 
