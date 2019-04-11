@@ -57,6 +57,7 @@ def send_alarm():
             synchronize_session=False)
         session.commit()
 
+    time.sleep(3)
     ### 告警
     with DBContext('r', None, False, **configs) as session:
         my_call = session.query(TaskMonitor).filter(TaskMonitor.call_status == 0).all()

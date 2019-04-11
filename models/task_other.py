@@ -4,7 +4,7 @@
 Contact : 191715030@qq.com
 Author  : shenshuo
 Date    : 2018/11/30
-Desc    : 其他
+Desc    : 其他扩展功能
 """
 
 from sqlalchemy import Column, String, Integer, Text, DateTime
@@ -62,6 +62,7 @@ class TaskPublishConfig(Base):
     config_file = Column('config_file', String(500))    ### 配置文件
     publish_hosts = Column('publish_hosts', String(400))  ### 发布主机
     publish_hosts_api = Column('publish_hosts_api', String(120))  ### 发布主机
+    tag_name = Column('tag_name', String(35))  ###  关联标签
     bucket_type = Column('bucket_type', String(20))  ### 存储桶信息
     region =  Column('region', String(50))  ### 存储桶信息
     bucket_name =  Column('bucket_name', String(50))  ### 存储桶信息
@@ -74,3 +75,71 @@ class TaskPublishConfig(Base):
     namespace = Column('namespace', String(80))               ### 命名空间
     mail_to = Column('mail_to', String(500))                  ### 任务中邮件发送人
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间
+
+
+class Tag(Base):
+    __tablename__ = 'asset_tag'
+
+    ### 标签  通过标签来定义主机组 和DB集群
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tag_name = Column('tag_name', String(35), unique=True, nullable=False)
+    users = Column('users', String(1000))  ### 用户
+    proxy_host = Column('proxy_host', String(35))  ### 代理主机 适配多云
+    create_time = Column('create_time', DateTime(), default=datetime.now, onupdate=datetime.now)
+
+class DBTag(Base):
+    __tablename__ = 'asset_db_tag'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    db_id = Column('db_id', Integer)
+    tag_id = Column('tag_id', Integer)
+
+
+class ServerTag(Base):
+    __tablename__ = 'asset_server_tag'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    server_id = Column('server_id', Integer)
+    tag_id = Column('tag_id', Integer)
+
+class DB(Base):
+    __tablename__ = 'asset_db'
+    ### 数据库集群
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    db_code = Column('db_code', String(50))  ### 名称 代号 编码
+    db_host = Column('db_host', String(80), nullable=False)
+    db_port = Column('db_port', String(5), nullable=False, default=3306)
+    db_user = Column('db_user', String(20), nullable=False,default='root')
+    db_pwd = Column('db_pwd', String(30),nullable=False)
+    db_env = Column('db_env', String(10), nullable=False,default='写')
+    proxy_host = Column('proxy_host', String(35))  ### 代理主机 适配多云
+    db_type = Column('db_type', String(10))  ### 标记类型
+    db_mark = Column('db_mark', String(10))  ### 标记读写备
+    db_detail = Column('db_detail', String(30))
+    all_dbs = Column('all_dbs', String(300))  ### 所有的数据库
+    state = Column('state', String(15))
+    create_time = Column('create_time', DateTime(), default=datetime.now, onupdate=datetime.now)
+
+
+class Server(Base):
+    __tablename__ = 'asset_server'
+
+    ### 服务器
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    hostname = Column('hostname', String(50), unique=True,nullable=False)
+    ip = Column('ip', String(20))
+    region = Column('region', String(25))
+    state = Column('state', String(15))
+    detail = Column('detail', String(20))
+    create_time = Column('create_time', DateTime(), default=datetime.now, onupdate=datetime.now)
+
+
+class ProxyInfo(Base):
+    __tablename__ = 'asset_proxy_info'
+
+    ### 代理主机  通过此主机来连接数据库
+    id = Column('id', Integer, primary_key=True, autoincrement=True)
+    proxy_host = Column('proxy_host', String(60),unique=True, nullable=False)
+    inception = Column('inception', String(300))
+    salt = Column('salt', String(300))
+    detail = Column('detail', String(20))

@@ -23,7 +23,7 @@ exec_timeout = 600
 
 def exec_shell(log_key, real_cmd, cmd, redis_conn):
     redis_conn.publish("task_log", json.dumps(
-        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": "{} start !!!".format(cmd)}))
+        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": "[CMD]: {}".format(cmd)}))
     start_time = time.time()
     sub = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:

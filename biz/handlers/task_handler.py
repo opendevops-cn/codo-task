@@ -123,19 +123,27 @@ class TaskCheckHandler(BaseHandler):
 
         args_record = []
         new_args_dict = {}
-        args_dict = literal_eval(task_info.args)
+        new_args_list = []
+        try:
+            args_dict = literal_eval(task_info.args)
+        except Exception as e :
+            print(str(e))
+            args_dict = {}
 
         for h in hand_task:
             hand_list.append(h[0])
 
         if args_dict:
             for k, v in args_dict.items():
+                # if len(v) < 100:  ### 只展示比较短的参数
                 for i in args_info:
                     args_record.append(i[1])
                     if i[1] == k:
                         new_args_dict[i[0]] = v
+                        new_args_list.append({'args_key': i[0],'args_value': v})
                 if k not in args_record:
                     new_args_dict[k] = v
+                    new_args_list.append({'args_key': k, 'args_value': v})
 
         ### 组
         all_hosts = literal_eval(task_info.hosts)
@@ -182,7 +190,8 @@ class TaskCheckHandler(BaseHandler):
 
         data_dict = dict(create_time=str(task_info.create_time), start_time=str(task_info.start_time),
                          username=self.get_current_user(), creator=task_info.creator,
-                         executor=task_info.executor, new_args=new_args_dict, schedule=task_info.schedule,
+                         executor=task_info.executor, new_args=new_args_dict, new_args_list=new_args_list,
+                         schedule=task_info.schedule,
                          associated_user=associated_user, approval_button=approval_button,
                          args_keys=list(new_args_dict.keys()), hand_list=hand_list, group_list=group_list,
                          run_group=str(run_group), this_host_list=list(this_host_list), this_host=this_host,
@@ -342,7 +351,7 @@ class HistoryListHandler(BaseHandler):
         with DBContext('r') as session:
             count = session.query(TaskList).filter(TaskList.schedule == 'OK').count()
             task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
-             -TaskList.list_id).offset(limit_start).limit(int(limit))
+                -TaskList.list_id).offset(limit_start).limit(int(limit))
 
         for msg in task_info:
             data_dict = model_to_dict(msg)

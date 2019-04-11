@@ -321,15 +321,9 @@ class ExecutiveUserHandler(BaseHandler):
         if check_contain_chinese(exec_user):
             return self.write(dict(code=-1, msg='名称不能有汉字'))
 
-        with DBContext('r') as session:
-            alias_exist = session.query(ExecuteUser.id).filter(ExecuteUser.alias_user == alias_user).first()
-
-        if alias_exist:
-            return self.write(dict(code=-2, msg='名称不能重复'))
 
         with DBContext('w', None, True) as session:
-            session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).update({ExecuteUser.alias_user: alias_user,
-                                                                                      ExecuteUser.exec_user: exec_user,
+            session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).update({ExecuteUser.exec_user: exec_user,
                                                                                       ExecuteUser.ssh_port: ssh_port,
                                                                                       ExecuteUser.user_key: user_key,
                                                                                       ExecuteUser.remarks: remarks})
