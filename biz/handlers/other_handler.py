@@ -419,9 +419,6 @@ other_urls = [
     (r"/other/v2/task_other/repository/", CodeRepositoryHandler),
     (r"/other/v2/task_other/docker_registry/", DockerRepositoryHandler),
     (r"/other/v2/task_other/publish_cd/", PublishCDHandler),
-    # (r"/v2/task_other/publish_list/", PublishListHandler),
-    # (r"/v2/task_other/mysql_optimize/", MySqlOptimize),
-    # (r"/v2/task_other/mysql_audit/", MySqlAudit),
 ]
 
 if __name__ == "__main__":

@@ -71,7 +71,6 @@ class PublishAppHandler(BaseHandler):
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
         custom = data.get('custom')
-        print(data)
 
         publish_name = data.get('publish_name', None)
         publish_tag = data.get('publish_tag', None)
@@ -281,10 +280,10 @@ class CustomTask(BaseHandler):
             server_info = session.query(Server).outerjoin(ServerTag, Server.id == ServerTag.server_id).outerjoin(
                 Tag, Tag.id == ServerTag.tag_id).filter(Tag.tag_name == str(value))
 
-            for msg in server_info:
-                data_dict = model_to_dict(msg)
-                data_dict.pop('create_time')
-                server_list.append(data_dict['hostname'])
+        for msg in server_info:
+            data_dict = model_to_dict(msg)
+            data_dict.pop('create_time')
+            server_list.append(data_dict['hostname'])
 
         self.write(dict(code=0, msg='获取成功', data=server_list))
 
@@ -326,6 +325,86 @@ class CustomTask(BaseHandler):
         hosts_dict = {first_group: ','.join(server_ip_list)}
         data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=temp_id,
                          task_name='自定义任务', submitter=self.get_current_nickname(),
+                         associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='')
+
+        return_data = acc_create_task(**data_info)
+        return self.write(return_data)
+
+
+class CustomTaskProxy(BaseHandler):
+    def get(self, *args, **kwargs):
+        key = self.get_argument('key', default=None, strip=True)
+        tag_list = json.loads(key)['tag_list']
+        if len(tag_list) == 0:
+            return self.write(dict(code=-1, msg='请至少选中一个标签'))
+
+        server_list = []
+        proxy_list = []
+        with DBContext('r') as session:
+            server_info = session.query(Server).outerjoin(ServerTag, Server.id == ServerTag.server_id).outerjoin(
+                Tag, Tag.id == ServerTag.tag_id).filter(Tag.tag_name.in_(tag_list))
+
+            proxy_host = session.query(Tag.proxy_host).filter(Tag.tag_name.in_(tag_list)).all()
+
+        for p in proxy_host:
+            proxy_list.append(p[0])
+        if not proxy_host:
+            return self.write(dict(code=-1, msg='请给选择标签添加代理主机'))
+
+        for msg in server_info:
+            data_dict = model_to_dict(msg)
+            data_dict.pop('create_time')
+            server_list.append(data_dict['hostname'])
+
+        self.write(dict(code=0, msg='获取成功', data=dict(server_list=server_list, proxy_list=list(set(proxy_list)))))
+
+    def post(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        tag = data.get('tag', None)
+        temp_id = data.get('temp_id', None)
+        hostnames = data.get('hostnames', None)
+        proxy_list = data.get('proxy_list', None)
+        args_items = data.get('args_items', None)
+        start_time = data.get('start_time', None)
+        start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=8)
+        if not tag or not start_time or not temp_id:
+            return self.write(dict(code=-1, msg='必填项不能为空'))
+
+        if len(hostnames) == 0:
+            return self.write(dict(code=-2, msg='必须有主机才行啊'))
+
+        if len(proxy_list) != 1:
+            return self.write(dict(code=-2, msg='代理主机选择错误，有且只能有一个'))
+
+        proxy_host = proxy_list[0
+        ]
+        if len(hostnames) > 100:
+            return self.write(dict(code=-3, msg='并发主机不能超过100'))
+
+        args_dict = {}
+        if args_items:
+            for i in args_items:
+                if i['status'] == 1:
+                    args_dict[str(i['key'])] = i['value']
+
+        server_ip_list = []
+        with DBContext('r') as session:
+            server_info = session.query(Server.ip).filter(Server.hostname.in_(hostnames))
+            first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
+                TempDetails.group).first()[0]
+
+        if not first_group:
+            return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
+
+        for msg in server_info:
+            server_ip_list.append(msg[0])
+
+        args_dict['SERVER_IP'] = ','.join(server_ip_list)
+        args_dict['SERVER_HOST'] = ','.join(hostnames)
+
+        hosts_dict = {first_group: proxy_host}
+        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=temp_id,
+                         task_name='自定义任务-代理', submitter=self.get_current_nickname(),
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='')
 
         return_data = acc_create_task(**data_info)
@@ -385,6 +464,7 @@ opt_info_urls = [
     (r"/other/v1/submission/mysql_audit/", MySqlAudit),
     (r"/other/v1/submission/mysql_opt/", MySQLOptimization),
     (r"/other/v1/submission/custom_task/", CustomTask),
+    (r"/other/v1/submission/custom_task_proxy/", CustomTaskProxy),
     (r"/other/v1/submission/post_task/", PostTaskHandler),
 ]
 if __name__ == "__main__":
