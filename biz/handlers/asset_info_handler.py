@@ -383,6 +383,24 @@ class TreeHandler(BaseHandler):
         self.write(dict(code=0, msg='获取成功', data=_tree))
 
 
+class TagAuthority(BaseHandler):
+    def get(self, *args, **kwargs):
+        nickname = self.get_current_nickname()
+        tag_list = []
+
+        with DBContext('r') as session:
+            the_tags = session.query(Tag).order_by(Tag.id).all()
+
+        for msg in the_tags:
+            data_dict = model_to_dict(msg)
+            data_dict.pop('create_time')
+            if self.is_superuser:
+                tag_list.append(data_dict)
+            elif data_dict['users'] and nickname in data_dict['users'].split(','):
+                tag_list.append(data_dict)
+        return self.write(dict(code=0, msg='获取成功', data=tag_list))
+
+
 class TAGHandler(BaseHandler):
     def get(self, *args, **kwargs):
         key = self.get_argument('key', default=None, strip=True)
@@ -399,14 +417,14 @@ class TAGHandler(BaseHandler):
                     limit_start).limit(int(limit))
             elif limit == '888':
                 count = session.query(Tag).count()
-                all_tags = session.query(Tag).order_by(Tag.id).order_by(Tag.id).all()
+                all_tags = session.query(Tag).order_by(Tag.id).all()
             elif key and key != 'tag_name' and value:
                 count = session.query(Tag).filter_by(**{key: value}).count()
                 all_tags = session.query(Tag).order_by(Tag.id).filter_by(**{key: value}).order_by(Tag.id).offset(
                     limit_start).limit(int(limit))
             else:
                 count = session.query(Tag).count()
-                all_tags = session.query(Tag).order_by(Tag.id).order_by(Tag.id).offset(limit_start).limit(int(limit))
+                all_tags = session.query(Tag).order_by(Tag.id).offset(limit_start).limit(int(limit))
 
             for msg in all_tags:
                 db_list = []
@@ -594,6 +612,7 @@ asset_info_urls = [
     (r"/other/v1/record/server/", ServerHandler),
     (r"/other/v1/record/tree/", TreeHandler),
     (r"/other/v1/record/tag/", TAGHandler),
+    (r"/other/v1/record/tag_auth/", TagAuthority),
     (r"/other/v1/record/proxy/", ProxyHostHandler),
 ]
 if __name__ == "__main__":

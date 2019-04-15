@@ -134,13 +134,6 @@ class PublishAppHandler(BaseHandler):
         return self.write(return_data)
 
 
-def lower_to_capital(dict_info):
-    new_dict = {}
-    for i, j in dict_info.items():
-        if j:
-            new_dict[i.upper()] = j
-    return new_dict
-
 
 ### 数据库审核
 class MySqlAudit(BaseHandler):
