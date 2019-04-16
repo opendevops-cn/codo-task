@@ -529,6 +529,8 @@ class TAGHandler(BaseHandler):
 
             if users:
                 users = ','.join(users)
+            else:
+                users = None
             session.query(Tag).filter(Tag.id == int(tag_id)).update({Tag.users: users, Tag.proxy_host: proxy_host})
             session.commit()
 
