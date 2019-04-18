@@ -19,9 +19,9 @@ class Application(myApplication):
     def __init__(self, **settings):
         urls = []
         urls.extend(task_log_urls)
-        tailed_callback = tornado.ioloop.PeriodicCallback(tail_data, 800)
+        tailed_callback = tornado.ioloop.PeriodicCallback(tail_data, 500)
         tailed_callback.start()
-        get_log_callback = tornado.ioloop.PeriodicCallback(get_log_data, 2000)
+        get_log_callback = tornado.ioloop.PeriodicCallback(get_log_data, 1000)
         get_log_callback.start()
         ###
         urls.extend(asset_info_urls)

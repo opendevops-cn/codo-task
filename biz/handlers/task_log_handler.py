@@ -90,7 +90,7 @@ class GetLogDataHandler(tornado.websocket.WebSocketHandler):
 
 
 def get_log_data():
-    log_list = []
+    log_list1 = []
     with DBContext('r') as session:
         for key in LISTENERS_v1:
             ele_list = LISTENERS_v1[key]['ele']
@@ -98,12 +98,12 @@ def get_log_data():
                 log_info = session.query(TaskLog).filter(TaskLog.log_key == key).order_by(TaskLog.log_time).all()
                 for msg in log_info:
                     data_dict = model_to_dict(msg)
-                    log_list.append(data_dict.get('log_info'))
+                    log_list1.append(data_dict.get('log_info'))
 
-                if log_list:
-                    del log_list[0]
+                if log_list1:
+                    del log_list1[0]
                 for el in ele_list:
-                    el.write_message('----'.join(log_list))
+                    el.write_message('----'.join(log_list1))
 
             else:
                 LISTENERS_v1.pop(key)
