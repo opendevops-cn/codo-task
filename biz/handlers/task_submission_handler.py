@@ -168,7 +168,7 @@ class MySqlAudit(BaseHandler):
 
         db_str = ""
         with DBContext('r') as session:
-            temp_info = session.query(TempList).filter(TempList.temp_id == 9001).first()
+            temp_info = session.query(TempList).filter(TempList.temp_id == 9000).first()
             if not temp_info:
                 return self.write(dict(code=-2, msg='关联的任务模板有误，快去检查！'))
 
