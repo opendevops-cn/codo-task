@@ -107,7 +107,7 @@ def exec_inception_v3(way, exec_sql, inception_info, **db_info):
         if 1 in result_code:
             print('host:{}  warning, please check the log !!!'.format(connstr_target['db_host']))
 
-        if 2 in result_code:
+        elif 2 in result_code:
             print('host:{}  error, please check the log !!!'.format(connstr_target['db_host']))
             exit(-1)
         else:
