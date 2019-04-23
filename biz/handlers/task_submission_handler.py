@@ -134,7 +134,6 @@ class PublishAppHandler(BaseHandler):
         return self.write(return_data)
 
 
-
 ### 数据库审核
 class MySqlAudit(BaseHandler):
     def get(self, *args, **kwargs):
@@ -369,8 +368,7 @@ class CustomTaskProxy(BaseHandler):
         if len(proxy_list) != 1:
             return self.write(dict(code=-2, msg='代理主机选择错误，有且只能有一个'))
 
-        proxy_host = proxy_list[0
-        ]
+        proxy_host = proxy_list[0]
         if len(hostnames) > 100:
             return self.write(dict(code=-3, msg='并发主机不能超过100'))
 
@@ -452,6 +450,77 @@ class PostTaskHandler(BaseHandler):
         return self.write(return_data)
 
 
+class AssetPurchase(BaseHandler):
+
+    def post(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        temp_name = data.get('temp_name')
+        host_env = data.get('host_env')
+        tag_list = data.get('tag_list')
+
+        with DBContext('r') as session:
+            temp_id = session.query(TempList.temp_id).filter(TempList.temp_name == temp_name).first()
+            if not temp_id:
+                return self.write(dict(code=-1, msg='关联的任务模板不存在，快去检查！'))
+            else:
+                temp_id = temp_id[0]
+
+            first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
+                TempDetails.group).first()
+
+            if not first_group:
+                return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
+            else:
+                first_group = first_group[0]
+
+        args_dict = data
+        if host_env:
+            host_env = ','.join(host_env)
+            args_dict['host_env'] = host_env
+        else:
+            args_dict.pop('host_env')
+
+        if tag_list:
+            if isinstance(tag_list, list):
+                tag_list = ','.join(tag_list)
+            args_dict['tag_list'] = tag_list
+        else:
+            args_dict.pop('tag_list')
+
+        args_dict.pop('temp_name')
+
+        exec_host = args_dict.pop('exec_host')
+
+        hosts_dict = {first_group: exec_host}
+
+        new_dict = {}
+        for i, j in args_dict.items():
+            new_dict[i.upper()] = j
+
+        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=temp_id,
+                         task_name='资源', submitter=self.get_current_nickname(),
+                         associated_user="", args=str(new_dict), hosts=str(hosts_dict), schedule='new', details='')
+        return_data = acc_create_task(**data_info)
+        return self.write(return_data)
+
+
+class AssetPurchaseAWS(BaseHandler):
+    def post(self, *args, **kwargs):
+        return self.write(dict(code=-1, msg='此方法暂无'))
+
+
+class AssetPurchaseALY(BaseHandler):
+
+    def post(self, *args, **kwargs):
+        return self.write(dict(code=-1, msg='此方法暂无'))
+
+
+class AssetPurchaseQCloud(BaseHandler):
+
+    def post(self, *args, **kwargs):
+        return self.write(dict(code=-1, msg='此方法暂无'))
+
+
 opt_info_urls = [
     (r"/other/v1/submission/publish/", PublishAppHandler),
     (r"/other/v1/submission/mysql_audit/", MySqlAudit),
@@ -459,6 +528,9 @@ opt_info_urls = [
     (r"/other/v1/submission/custom_task/", CustomTask),
     (r"/other/v1/submission/custom_task_proxy/", CustomTaskProxy),
     (r"/other/v1/submission/post_task/", PostTaskHandler),
+    (r"/other/v1/submission/purchase_aws/", AssetPurchase),
+    (r"/other/v1/submission/purchase_aly/", AssetPurchase),
+    (r"/other/v1/submission/purchase_qcloud/", AssetPurchase),
 ]
 if __name__ == "__main__":
     pass

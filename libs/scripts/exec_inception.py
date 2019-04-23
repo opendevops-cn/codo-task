@@ -106,6 +106,9 @@ def exec_inception_v3(way, exec_sql, inception_info, **db_info):
         ## errlevel：返回值为非0的情况下，说明是有错的。1表示警告，不影响执行，2表示严重错误，必须修改
         if 1 in result_code:
             print('host:{}  warning, please check the log !!!'.format(connstr_target['db_host']))
+            if way == 'check':
+                print('有警告，可能导致执行失败，检查的时候会报错退出，当然要是确定没问题的话可以越过 !!!')
+                exit(-2)
 
         elif 2 in result_code:
             print('host:{}  error, please check the log !!!'.format(connstr_target['db_host']))
