@@ -8,6 +8,7 @@ role   : exec tasks
 ### 任务组按顺序触发，任务按预设触发，默认顺序执行
 ### 2018年4月16日  更改多进程为多线程
 ### 2018年11月20日 删除salt支持
+### 2019年4月25日  日志优化
 """
 
 import subprocess
@@ -41,6 +42,13 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
 
         ### 判断状态进行处理
         if ret == 0:
+            try:
+                result = sub.stdout.readline().decode('utf-8').replace('\n', '')
+            except Exception as e:
+                result = e
+            if result:
+                redis_conn.publish("task_log",
+                      json.dumps({"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
             sub.communicate()
             break
         elif ret is None:
@@ -53,7 +61,6 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                      "result": "execute timeout, execute time {}, it's killed.".format(duration)}))
 
                 break
-            # time.sleep(1)
         else:
             out, err = sub.communicate()
             try:

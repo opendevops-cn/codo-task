@@ -57,7 +57,7 @@ def exec_inception_v3(way, exec_sql, inception_info, **db_info):
     if way == 'check':
         operation = '--enable-check'
     elif way == 'run':
-        operation = '--execute=1'
+        operation = '--enable-execute;--enable-ignore-warnings;--enable-force'
 
     # operation = '--execute=1'
     # operation = '--enable-execute;--enable-ignore-warnings;--enable-force'
