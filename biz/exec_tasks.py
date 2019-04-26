@@ -36,7 +36,7 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
         try:
             for i in sub.stdout.readlines():
                 result = i.decode('utf-8')
-                if result:
+                if result.replace('\n', ''):
                     redis_conn.publish("task_log", json.dumps(
                         {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
         except Exception as e:
