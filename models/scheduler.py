@@ -6,7 +6,7 @@ date   : 2017年10月17日17:23:19
 desc   : task control models
 """
 
-from sqlalchemy import Column, String, Integer, Text, DateTime
+from sqlalchemy import Column, String, Integer, Text, DateTime,BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import class_mapper
 from datetime import datetime
@@ -68,7 +68,8 @@ class TaskLog(Base):
     log_id = Column('log_id', Integer, primary_key=True, autoincrement=True)
     log_key =Column('log_key', String(35))
     task_level = Column('task_level', Integer)
-    log_info = Column('log_info', String(500))
+    log_info = Column('log_info', Text())
+    exec_time = Column('exec_time', BigInteger)
     log_time = Column('log_time', DateTime(), default=datetime.now)
 
 

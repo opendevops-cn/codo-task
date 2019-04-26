@@ -24,7 +24,7 @@ exec_timeout = 600
 
 def exec_shell(log_key, real_cmd, cmd, redis_conn):
     redis_conn.publish("task_log", json.dumps(
-        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": "[CMD]: {}".format(cmd)}))
+        {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": "[CMD]: {}".format(cmd)}))
     start_time = time.time()
     sub = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
@@ -38,10 +38,10 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                 result = i.decode('utf-8')
                 if result.replace('\n', ''):
                     redis_conn.publish("task_log", json.dumps(
-                        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
+                        {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
         except Exception as e:
             redis_conn.publish("task_log", json.dumps(
-                {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": str(e)}))
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
 
         ### 判断状态进行处理
         if ret == 0:
@@ -50,10 +50,10 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                     result = i.decode('utf-8')
                     if result.replace('\n', ''):
                         redis_conn.publish("task_log", json.dumps(
-                            {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
+                            {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
             except Exception as e:
                 redis_conn.publish("task_log", json.dumps(
-                    {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": str(e)}))
+                    {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
             sub.communicate()
             break
         elif ret is None:
@@ -62,7 +62,7 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                 sub.wait()
                 sub.communicate()
                 redis_conn.publish("task_log", json.dumps(
-                    {"log_key": log_key, "exec_time": str(datetime.datetime.now()),
+                    {"log_key": log_key, "exec_time": int(round(time.time() * 1000)),
                      "result": "execute timeout, execute time {}, it's killed.".format(duration)}))
 
                 break
@@ -74,7 +74,7 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                 result = str(e)
 
             redis_conn.publish("task_log", json.dumps(
-                {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
             break
     return ret
 
@@ -152,7 +152,7 @@ class MyExecute:
                     par_l = str(self.all_args_info.get(p, p)).strip()
                 except Exception as e:
                     self.redis_conn.publish("task_log", json.dumps(
-                        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": str(e)}))
+                        {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
                     return args
                 if type(par_l) == "unicode":
                     par_l = par_l.encode('utf-8')
@@ -192,7 +192,7 @@ class MyExecute:
                 status = 4
         except Exception as e:
             self.redis_conn.publish("task_log", json.dumps(
-                {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": str(e)}))
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
             status = -1
 
         if status == 0:

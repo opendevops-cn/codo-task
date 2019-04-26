@@ -7,6 +7,7 @@ Date    : 2018/11/26
 Desc    : 
 """
 
+import time
 import tornado.websocket
 from websdk.db_context import DBContext
 from models.scheduler import TaskLog, model_to_dict
@@ -49,10 +50,11 @@ def tail_data():
         for key in LISTENERS:
             ele_list = LISTENERS[key]['ele']
             if ele_list:
-                log_info = session.query(TaskLog).filter(TaskLog.log_key == key).order_by(TaskLog.log_time).all()
+                log_info = session.query(TaskLog).filter(TaskLog.log_key == key).order_by(TaskLog.exec_time).all()
                 for msg in log_info:
                     data_dict = model_to_dict(msg)
-                    log_list.append("{}： {}".format(str(data_dict.get('log_time')), data_dict.get('log_info')))
+                    exec_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data_dict.get('exec_time') / 1000))
+                    log_list.append("{}： {}".format(str(exec_time), data_dict.get('log_info')))
 
                 for el in ele_list:
                     el.write_message('----'.join(log_list))
@@ -95,7 +97,7 @@ def get_log_data():
         for key in LISTENERS_v1:
             ele_list = LISTENERS_v1[key]['ele']
             if ele_list:
-                log_info = session.query(TaskLog).filter(TaskLog.log_key == key).order_by(TaskLog.log_time).all()
+                log_info = session.query(TaskLog).filter(TaskLog.log_key == key).order_by(TaskLog.exec_time).all()
                 for msg in log_info:
                     data_dict = model_to_dict(msg)
                     log_list1.append(data_dict.get('log_info'))
