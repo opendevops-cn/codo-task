@@ -23,7 +23,6 @@ import socket
 import re
 from shortuuid import uuid
 
-
 warnings.filterwarnings('ignore')
 import pymysql
 
@@ -51,7 +50,33 @@ def get_conf(**db_info):
     return db_info
 
 
+def sql_data_deal(exec_sql):
+    sql_all = []
+    for sql_line in exec_sql.split('\n'):
+        ###删除# -- 开始的行并去除空行
+        # sql_deal = re.sub(r'#.*$|--.*$', '', sql_line).strip()
+        sql_deal = re.sub(r'^#.*$|--.*$', '', sql_line)
+        sql_all.append(sql_deal)
+
+    ###把列表拼接成字符串
+    sql_in = ''
+    if sql_all:
+        sql_single = ''.join(sql_all)
+        ###去掉/*  */的注释
+        sql_in = re.sub(r'\/\*(.*?)\*\/', '', sql_single)
+
+    real_data = ''
+    ###按;分隔语句
+    sql_arr = sql_in.split(';')
+    for sql_one in sql_arr:
+        if sql_one:
+            real_data += '{};\n'.format(sql_one)
+
+    return real_data
+
+
 def exec_inception_v3(way, exec_sql, inception_info, **db_info):
+    exec_sql = sql_data_deal(exec_sql)
     # 执行还是校验
     operation = '--enable-check'
     if way == 'check':
