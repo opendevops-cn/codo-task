@@ -28,17 +28,20 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
     start_time = time.time()
     sub = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
+        time.sleep(2)
         ret = subprocess.Popen.poll(sub)
         current_time = time.time()
         duration = current_time - start_time
         ### 处理输出
         try:
-            result = sub.stdout.readline().decode('utf-8').replace('\n', '')
+            for i in sub.stdout.readlines():
+                result = i.decode('utf-8')
+                if result:
+                    redis_conn.publish("task_log", json.dumps(
+                        {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
         except Exception as e:
-            result = e
-        if result:
             redis_conn.publish("task_log", json.dumps(
-                {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
+                {"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": str(e)}))
 
         ### 判断状态进行处理
         if ret == 0:
@@ -48,7 +51,8 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
                 result = e
             if result:
                 redis_conn.publish("task_log",
-                      json.dumps({"log_key": log_key, "exec_time": str(datetime.datetime.now()), "result": result}))
+                                   json.dumps({"log_key": log_key, "exec_time": str(datetime.datetime.now()),
+                                               "result": result}))
             sub.communicate()
             break
         elif ret is None:
@@ -175,7 +179,7 @@ class MyExecute:
         else:
             ### 别名具有唯一性
             alias_user = info.get("exec_user")
-            exec_user =self.exec_user_dict.get(alias_user)
+            exec_user = self.exec_user_dict.get(alias_user)
             ssh_port = self.exec_user_dict.get(alias_user + "port")
             key_file = "/home/.ssh_key/{}_key".format(alias_user)
             real_cmd = "ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o ServerAliveInterval=60 -o ConnectTimeout=5" \
@@ -242,7 +246,7 @@ class MyExecute:
                     status_list = self.redis_conn.hvals(hash_key)
 
                     this_status = self.redis_conn.hget(hash_key, i)
-                    print('组：',self.group_id, '优先级', i, status_list, this_status)
+                    print('组：', self.group_id, '优先级', i, status_list, this_status)
                     ### 当前的状态如是为手动干预，中断,或 包含错误状态 则跳出循环
                     if b'5' == this_status or b'6' == this_status or b'4' in status_list:
                         break
@@ -257,7 +261,7 @@ class MyExecute:
                             break
 
                     ### 当前状态为等待执行和当前执行队列没有失败
-                    if this_status == b'1' and  b'4' not in status_list:
+                    if this_status == b'1' and b'4' not in status_list:
                         ### 修改状态为运行中
                         with DBContext('w') as session:
                             session.query(TaskSched).filter(TaskSched.list_id == self.flow_id,
