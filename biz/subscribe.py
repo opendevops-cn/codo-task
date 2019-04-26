@@ -35,7 +35,7 @@ class RedisSubscriber:
                         result = item['data'].decode('utf8')
                         data = json.loads(result)
                         print(data.get('log_key'), data.get('exec_time'), data.get('result'))
-                        log_info = data.get('result')[0:220]
+                        log_info = data.get('result')[0:480]
                         task_level = data.get('log_key').split('_')[2]
                         session.add(TaskLog(log_key=data.get('log_key'), task_level=task_level, log_info=log_info,
                                             log_time=data.get('exec_time')))

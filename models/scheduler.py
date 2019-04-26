@@ -68,7 +68,7 @@ class TaskLog(Base):
     log_id = Column('log_id', Integer, primary_key=True, autoincrement=True)
     log_key =Column('log_key', String(35))
     task_level = Column('task_level', Integer)
-    log_info = Column('log_info', String(250))
+    log_info = Column('log_info', String(500))
     log_time = Column('log_time', DateTime(), default=datetime.now)
 
 
