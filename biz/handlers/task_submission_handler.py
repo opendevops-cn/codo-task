@@ -167,7 +167,7 @@ class MySqlAudit(BaseHandler):
 
         db_str = ""
         with DBContext('r') as session:
-            temp_info = session.query(TempList).filter(TempList.temp_id == 9000).first()
+            temp_info = session.query(TempList).filter(TempList.temp_id == 330).first()
             if not temp_info:
                 return self.write(dict(code=-2, msg='关联的任务模板有误，快去检查！'))
 
@@ -192,7 +192,7 @@ class MySqlAudit(BaseHandler):
 
         args_dict = dict(MYSQLINFO=db_str, SQL_DATA=sql_data, INCEPTION=inception_info)
         hosts_dict = {1: proxy_host}
-        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=9000,
+        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=330,
                          task_name='MySQL', task_type='数据库审核', submitter=self.get_current_nickname(), executor=approver,
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='')
 
@@ -239,7 +239,7 @@ class MySQLOptimization(BaseHandler):
             db_info = session.query(DB).filter(DB.db_code == db_code).all()
             proxy_host = session.query(Tag.proxy_host).filter(Tag.tag_name == tag).first()[0]
 
-            temp_info = session.query(TempList).filter(TempList.temp_id == 9001).first()
+            temp_info = session.query(TempList).filter(TempList.temp_id == 331).first()
 
         if not temp_info:
             return self.write(dict(code=-2, msg='关联的任务模板有误，快去检查！'))
@@ -254,7 +254,7 @@ class MySQLOptimization(BaseHandler):
 
         args_dict = dict(MYSQLINFO=db_str, DB_NAME=db_name, SQL_DATA=sql_data, THE_WAY=the_way)
         hosts_dict = {1: proxy_host}
-        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=9001,
+        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=331,
                          task_name='MySQL', task_type='数据库优化', submitter=self.get_current_nickname(),
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='ready', details='')
         return_data = acc_create_task(**data_info)

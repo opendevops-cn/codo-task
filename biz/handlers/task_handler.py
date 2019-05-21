@@ -12,8 +12,8 @@ import time, datetime
 from ast import literal_eval
 from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
-from sqlalchemy import or_
-from models.scheduler import TaskList, TaskSched, TempDetails, TaskLog, ArgsList, model_to_dict
+from sqlalchemy import or_, func
+from models.scheduler import TaskList, TaskSched, TempDetails, ArgsList, model_to_dict
 from websdk.cache_context import cache_conn
 
 
@@ -367,6 +367,19 @@ class HistoryListHandler(BaseHandler):
         return self.write(dict(code=0, msg="获取成功", data=task_list, count=count, history=True))
 
 
+class TaskStatementHandler(BaseHandler):
+    def get(self, *args, **kwargs):
+        statement_list = []
+
+        with DBContext('r') as session:
+            count = session.query(TaskList).count()
+            task_info = session.query(TaskList.task_type, func.count(TaskList.task_type)).group_by(TaskList.task_type)
+        for msg in task_info:
+            statement_list.append(dict(task_type=msg[0],task_len=msg[1]))
+
+        return self.write(dict(code=0, msg="获取成功", data=statement_list, count=count))
+
+
 # class TaskLogHandler(BaseHandler):
 #     def get(self, *args, **kwargs):
 #         list_id = self.get_argument('list_id', default=1, strip=True)
@@ -406,6 +419,7 @@ task_list_urls = [
     (r"/v2/task/list/", TaskListHandler),
     (r"/v2/task/check/", TaskCheckHandler),
     (r"/v2/task/check_history/", HistoryListHandler),
+    (r"/v2/task/statement/", TaskStatementHandler),
     # (r"/v1/task/log/", TaskLogHandler),
     # (r"/v1/task/log/(\d*)/", ListLogHandler),
 ]

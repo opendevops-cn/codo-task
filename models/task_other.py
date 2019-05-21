@@ -40,7 +40,7 @@ class DockerRegistry(Base):
     ### 镜像仓库，手动录入相关的项目
     id = Column('id', Integer, primary_key=True, autoincrement=True)
     project_name = Column('project_name',  String(20),unique=True)   ###  docker 仓库项目地址
-    registry_url = Column('registry_url', String(100), unique=True)  ### 仓库地址
+    registry_url = Column('registry_url', String(150), unique=True)  ### 仓库地址
     user_name = Column('user_name', String(20))         ### 用户账户
     password = Column('password', String(80))           ### 用户密码
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间
@@ -128,6 +128,7 @@ class Server(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     hostname = Column('hostname', String(50), unique=True,nullable=False)
     ip = Column('ip', String(20))
+    idc = Column('idc', String(25))
     region = Column('region', String(25))
     state = Column('state', String(15))
     detail = Column('detail', String(20))
