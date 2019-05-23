@@ -1,6 +1,6 @@
-task_scheduler:
+codo_task:
   restart: unless-stopped
-  image: task_scheduler_image
+  image: codo_task_image
   volumes:
     - /var/log/supervisor/:/var/log/supervisor/
     - /opt/ops_scripts:/opt/ops_scripts

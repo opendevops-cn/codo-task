@@ -272,6 +272,7 @@ class ServerHandler(BaseHandler):
         data = json.loads(self.request.body.decode("utf-8"))
         hostname = data.get('hostname', None)
         ip = data.get('ip', None)
+        idc = data.get('idc', None)
         region = data.get('region', None)
         tag_list = data.get('tag_list', [])
         detail = data.get('detail', None)
@@ -285,7 +286,7 @@ class ServerHandler(BaseHandler):
             return self.write(dict(code=-2, msg='不要重复记录'))
 
         with DBContext('w', None, True) as session:
-            new_server = Server(hostname=hostname, ip=ip, region=region, detail=detail)
+            new_server = Server(hostname=hostname, ip=ip, idc=idc, region=region, detail=detail)
             session.add(new_server)
 
             all_tags = session.query(Tag.id).filter(Tag.tag_name.in_(tag_list)).order_by(Tag.id).all()
@@ -300,6 +301,7 @@ class ServerHandler(BaseHandler):
         hostname = data.get('hostname', None)
         server_id = data.get('id', None)
         ip = data.get('ip', None)
+        idc = data.get('idc', None)
         region = data.get('region', None)
         tag_list = data.get('tag_list', [])
         detail = data.get('detail', None)
@@ -318,6 +320,7 @@ class ServerHandler(BaseHandler):
                     session.add(ServerTag(server_id=server_id, tag_id=tag_id[0]))
 
             session.query(Server).filter(Server.id == server_id).update({Server.hostname: hostname, Server.ip: ip,
+                                                                         Server.idc: idc,
                                                                          Server.region: region, Server.detail: detail})
 
         return self.write(dict(code=0, msg='编辑成功'))

@@ -8,25 +8,26 @@
 create database `do_task` default character set utf8mb4 collate utf8mb4_unicode_ci;
 ```
 
-#### 修改配置
-- 对settings 里面的配置文件进行修改
-- 修改 doc/nginx_ops.conf 的server_name  例如 改为 task.opendevops.cn
-- 修改 doc/supervisor_ops.conf 内容来控制进程数量
-#### 注意事项
+**初始化表结构**
+```bash
+docker exec -ti codo-task_codo-task_1  /usr/local/bin/python3 /var/www/codo-task/db_sync.py
+```
 
-- log_record 此进程为录入任务执行日志 启动一个进程即可
-- cron_jobs 定时任务刷新websocket日志  错误报警使用， 一个进程即可
+#### 修改配置
+- 对settings 里面的配置文件进行修改，主要是数据库 缓存 消息队列
+- 修改 doc/nginx_ops.conf 的server_name  例如 改为 task.opendevops.cn   可以不修改，只要在内部DNS可以解析到对应地址
+- 修改 doc/supervisor_ops.conf 内容来控制任务并发数量  【exec_task】 默认10，建议根据服务器配置，和资源利用率进行修改
 
 #### 编译镜像
 ```bash
-docker build . -t task_scheduler_image
+docker build . -t codo_task_image
 ```
 #### docker 启动
 > 此处要保证 变量正确
 ```bash
 docker-compose up -d
 ```
-#### 启动后访问地址为 task.opendevops.cn：8020 在API网关上注册，注册示例参考API网关
+#### 启动后访问地址为 task.opendevops.cn:8020 在API网关上注册，注册示例参考API网关
 ### 注册网关
 > 参考[api网关](https://github.com/ss1917/api-gateway/blob/master/README.md)
 ## License
