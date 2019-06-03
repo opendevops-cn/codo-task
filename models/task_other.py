@@ -126,7 +126,7 @@ class Server(Base):
 
     ### 服务器
     id = Column(Integer, primary_key=True, autoincrement=True)
-    hostname = Column('hostname', String(50), unique=True,nullable=False)
+    hostname = Column('hostname', String(100), unique=True,nullable=False)
     ip = Column('ip', String(20))
     idc = Column('idc', String(25))
     region = Column('region', String(25))
@@ -140,7 +140,7 @@ class ProxyInfo(Base):
 
     ### 代理主机  通过此主机来连接数据库
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    proxy_host = Column('proxy_host', String(60),unique=True, nullable=False)
+    proxy_host = Column('proxy_host', String(100),unique=True, nullable=False)
     inception = Column('inception', String(300))
     salt = Column('salt', String(300))
     detail = Column('detail', String(20))
