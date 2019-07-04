@@ -333,12 +333,13 @@ class GitHookHandler(BaseHandler):
 
                 hook_args = dict(TAG=tag_name,RELATIVE_PATH=relative_path, GIT_SSH_URL=hook_info[1],
                                  GIT_HTTP_URL=hook_info[2])
+                old_hook_args = the_hook.get('hook_args')
                 ### 参数字典
                 hosts_dict = {1: "127.0.0.1", 2: "127.0.0.1"}  ### 主机字典
                 if the_hook.get('hook_args'):
                     hosts_dict.update(the_hook.get('hook_args'))
-                    if hook_args.get('hosts_dict'):
-                        hosts_dict = hook_args.pop('hosts_dict')
+                    if old_hook_args.get('hosts_dict') and isinstance(old_hook_args.get('hosts_dict'), dict):
+                        hosts_dict = old_hook_args.pop('hosts_dict')
 
                 msg = '匹配到钩子：{} 模板ID：{} 执行：{}，参数：{}'.format(tag_name_mate, the_hook.get('temp_id'),
                                                             the_hook.get('schedule'), str(the_hook.get('hook_args')))
