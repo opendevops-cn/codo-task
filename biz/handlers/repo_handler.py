@@ -327,8 +327,8 @@ class GitHookHandler(BaseHandler):
             else:
                 the_hook = hook_dict[tag_name_mate]
 
-                hook_args = dict(TAG=tag_name, GIT_URL=git_url, RELATIVE_PATH=relative_path,
-                                 GIT_SSH_URL=hook_info[1], GIT_HTTP_URL=hook_info[2])
+                hook_args = dict(TAG=tag_name,RELATIVE_PATH=relative_path, GIT_SSH_URL=hook_info[1],
+                                 GIT_HTTP_URL=hook_info[2])
                 ### 参数字典
                 hosts_dict = {1: "127.0.0.1", 2: "127.0.0.1"}  ### 主机字典
                 if the_hook.get('hook_args'):
