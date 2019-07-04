@@ -348,7 +348,8 @@ class GitHookHandler(BaseHandler):
                 session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info=msg))
 
         data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                         temp_id=the_hook.get('temp_id'), task_name=relative_path, schedule='new',
+                         temp_id=the_hook.get('temp_id'), task_name=relative_path,
+                         schedule=the_hook.get('schedule','new'),
                          submitter=self.get_current_nickname(), args=str(hook_args), hosts=str(hosts_dict))
         return_data = acc_create_task(**data_info)
         return self.write(return_data)
