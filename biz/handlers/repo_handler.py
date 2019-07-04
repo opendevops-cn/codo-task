@@ -7,7 +7,6 @@ Date    : 2019年6月28日
 Desc    : GIT仓库管理API
 """
 
-import re
 import datetime
 import gitlab
 import json
@@ -306,7 +305,7 @@ class GitHookHandler(BaseHandler):
                                       ).filter(GitRepo.git_url == git_url,
                                                GitRepo.relative_path == relative_path).first()
 
-            if not hook_info[0]:
+            if hook_info[0] is None:
                 session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有配置钩子'))
                 return self.write(dict(code=0, msg='No hooks, ignore'))
             else:
@@ -319,7 +318,9 @@ class GitHookHandler(BaseHandler):
 
             tag_name_mate = None  ### 匹配到的标签或者分支
             for t in hook_dict.keys():
-                if re.match(r'\A{}[\w]*'.format(t), tag_name):
+                # import re
+                # if re.match(r'\A{}[\w]*'.format(t), tag_name):
+                if tag_name.startswith(t):
                     tag_name_mate = t
 
             if not tag_name_mate:
