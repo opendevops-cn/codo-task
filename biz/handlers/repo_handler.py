@@ -7,6 +7,7 @@ Date    : 2019年6月28日
 Desc    : GIT仓库管理API
 """
 
+import re
 import datetime
 import gitlab
 import json
@@ -318,7 +319,7 @@ class GitHookHandler(BaseHandler):
 
             tag_name_mate = None  ### 匹配到的标签或者分支
             for t in hook_dict.keys():
-                if t.startswith(tag_name):
+                if re.match(r'\A{}[\w]*'.format(t), tag_name):
                     tag_name_mate = t
 
             if not tag_name_mate:
