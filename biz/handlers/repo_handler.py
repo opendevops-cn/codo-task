@@ -318,7 +318,7 @@ class GitHookHandler(BaseHandler):
 
             tag_name_mate = None  ### 匹配到的标签或者分支
             for t in hook_dict.keys():
-                if tag_name.startswith(t):
+                if t.startswith(tag_name):
                     tag_name_mate = t
 
             if not tag_name_mate:
