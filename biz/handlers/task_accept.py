@@ -62,6 +62,10 @@ def create_task(**data_info):
     if not temp_id and not hosts and not task_name and not submitter:
         return dict(code=6, msg="必要参数缺失")
 
+    ### 接受字符串类型的主机组
+    for h in hosts.keys():
+        hosts[int(h)] = hosts.pop(h)
+
     with DBContext('r') as session:
         all_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).group_by(
             TempDetails.group).all()

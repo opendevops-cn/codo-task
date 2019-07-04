@@ -12,8 +12,8 @@ import datetime
 import json
 from .task_accept import create_task as acc_create_task
 from libs.base_handler import BaseHandler
-from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, TaskCodeRepository, TaskPublishConfig, \
-    model_to_dict
+from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, TaskPublishConfig, model_to_dict
+from models.git_model import GitRepo
 from models.scheduler import TempList, TempDetails
 from websdk.db_context import DBContext
 
@@ -21,7 +21,7 @@ from websdk.db_context import DBContext
 class PublishAppHandler(BaseHandler):
     async def get(self, *args, **kwargs):
         publish_name = self.get_argument('publish_name', default=None, strip=True)
-        nickname = self.get_current_nickname()
+        username = self.get_current_user()
         publish_app_list = []
         host_list = []
 
@@ -58,14 +58,16 @@ class PublishAppHandler(BaseHandler):
 
         else:
             with DBContext('r') as session:
-                publish_info = session.query(TaskPublishConfig.publish_name, TaskCodeRepository.user_info).outerjoin(
-                    TaskCodeRepository, TaskPublishConfig.repository == TaskCodeRepository.repository).order_by(
+                publish_info = session.query(TaskPublishConfig.publish_name, GitRepo.user_info).outerjoin(
+                    GitRepo, TaskPublishConfig.repository == GitRepo.ssh_url_to_repo).order_by(
                     TaskPublishConfig.id).all()
             for msg in publish_info:
                 if self.is_superuser:
                     publish_app_list.append(msg[0])
-                elif msg[1] and nickname in msg[1].split(','):
-                    publish_app_list.append(msg[0])
+                elif msg[1] and username in msg[1].split(','):
+                    for u in msg[1].split(','):
+                        if username == u.split("@")[0]:
+                            publish_app_list.append(msg[0])
             return self.write(dict(code=0, msg='获取成功', data=publish_app_list))
 
     def post(self, *args, **kwargs):
