@@ -286,9 +286,11 @@ class HooksLogHandler(BaseHandler):
 
 
 class GitHookHandler(BaseHandler):
+    @gen.coroutine
     def get(self, *args, **kwargs):
         self.write(dict(code=0, msg='获取csrf_key成功', csrf_key=self.new_csrf_key))
 
+    @gen.coroutine
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
         git_url = data.get('git_url')
@@ -302,11 +304,13 @@ class GitHookHandler(BaseHandler):
             session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='收到请求：{}'.format(tag_name)))
 
             hook_info = session.query(GitRepo.git_hooks, GitRepo.ssh_url_to_repo, GitRepo.http_url_to_repo
-                                      ).filter(GitRepo.git_url == git_url,
-                                               GitRepo.relative_path == relative_path).first()
+                                  ).filter(GitRepo.git_url == git_url, GitRepo.relative_path == relative_path).first()
+            if not hook_info:
+                # session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有查找到相关项目'))
+                return self.write(dict(code=0, msg='No related items were found'))
 
-            if hook_info[0] is None:
-                session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有配置钩子'))
+            if hook_info and not hook_info[0]:
+                # session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有配置钩子'))
                 return self.write(dict(code=0, msg='No hooks, ignore'))
             else:
                 try:
@@ -318,8 +322,6 @@ class GitHookHandler(BaseHandler):
 
             tag_name_mate = None  ### 匹配到的标签或者分支
             for t in hook_dict.keys():
-                # import re
-                # if re.match(r'\A{}[\w]*'.format(t), tag_name):
                 if tag_name.startswith(t):
                     tag_name_mate = t
 
