@@ -1,1 +1,2 @@
 fire
+python-gitlab==1.9.0
