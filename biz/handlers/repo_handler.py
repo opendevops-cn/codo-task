@@ -271,11 +271,12 @@ class GitConfHandler(BaseHandler):
 
 
 class HooksLogHandler(BaseHandler):
+    @gen.coroutine
     def get(self, *args, **kwargs):
         log_list = []
 
         with DBContext('r') as session:
-            hooks_log_info = session.query(HooksLog).order_by(-HooksLog.id).limit(500)
+            hooks_log_info = session.query(HooksLog).order_by(-HooksLog.id).limit(200).all()
 
         for msg in hooks_log_info:
             data_dict = model_to_dict(msg)
@@ -343,8 +344,8 @@ class GitHookHandler(BaseHandler):
 
                 msg = '匹配到钩子：{} 模板ID：{} 执行：{}，参数：{}'.format(tag_name_mate, the_hook.get('temp_id'),
                                                             the_hook.get('schedule'), str(the_hook.get('hook_args')))
-                if len(msg) > 245:
-                    msg = msg[:245]
+                if len(msg) > 200:
+                    msg = msg[:200]
                 session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info=msg))
 
         data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -353,6 +354,31 @@ class GitHookHandler(BaseHandler):
                          submitter=self.get_current_nickname(), args=str(hook_args), hosts=str(hosts_dict))
         return_data = acc_create_task(**data_info)
         return self.write(return_data)
+
+    def delete(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        the_id = data.get('the_id')
+        tag_index = data.get('tag_index')
+
+        with DBContext('w', None, True) as session:
+            hook_info = session.query(GitRepo.git_hooks).filter(GitRepo.id == the_id).first()
+            if not hook_info:
+                return self.write(dict(code=-1, msg='No related items were found'))
+
+            if not hook_info[0]:
+                return self.write(dict(code=-2, msg='No hooks, ignore'))
+            else:
+                try:
+                    hook_dict = json.loads(hook_info[0])
+                except Exception as e:
+                    session.query(GitRepo).filter(GitRepo.id == the_id).update({GitRepo.git_hooks: ""})
+                    return self.write(dict(code=2, msg='钩子出错'))
+
+            hook_dict.pop(tag_index)
+            hook_dict = json.dumps(hook_dict)
+
+            session.query(GitRepo).filter(GitRepo.id == the_id).update({GitRepo.git_hooks: hook_dict})
+        self.write(dict(code=0, msg='删除成功'))
 
 
 class GitSyncHandler(BaseHandler):
