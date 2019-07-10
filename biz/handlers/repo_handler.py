@@ -415,7 +415,10 @@ class GitSyncHandler(BaseHandler):
                         for me in group.members.list(all=True):
                             the_user_info = gl.users.get(me.id)
                             user_id_list.append(str(me.id))
-                            user_email_list.append(the_user_info.email)
+                            try:
+                                user_email_list.append(the_user_info.email)
+                            except Exception as e:
+                                print(e)
 
                         user_list = ','.join(user_id_list) if user_id_list else ''
 
@@ -444,7 +447,10 @@ class GitSyncHandler(BaseHandler):
                         for project in projects:
                             for me in gl.projects.get(project.id).members.list(all=True):
                                 the_user_info = gl.users.get(me.id)
-                                user_email_list.append(the_user_info.email)
+                                try:
+                                    user_email_list.append(the_user_info.email)
+                                except Exception as e:
+                                    print(e)
 
                             user_email_list = list(set(user_email_list))
                             email_list = ','.join(user_email_list) if user_email_list else ''
@@ -465,32 +471,31 @@ class GitSyncHandler(BaseHandler):
                                      GitRepo.project_name: project.name,
                                      GitRepo.relative_path: project.path_with_namespace, GitRepo.user_info: email_list})
 
-                            # print('------', git_url, group_list.name, project.id, project.name, project.ssh_url_to_repo,
-                            #       project.http_url_to_repo, project.description)
                     session.commit()
 
                 ### 用户
-                users = gl.users.list(all=True)
-                exist_user_list = []
-                with DBContext('w', None, True) as session:
-                    for user in users:
-                        exist_user_list.append(user.id)
-                        if user.id not in git_user_list:
-                            session.add(
-                                GitUsers(git_url=git_url, user_id=user.id, name=user.name, username=user.username,
-                                         email=user.email, state=user.state))
-                        else:
-                            session.query(GitUsers).filter(GitUsers.git_url == git_url,
-                                                           GitUsers.user_id == user.id).update(
-                                {GitUsers.name: user.name, GitUsers.username: user.username, GitUsers.email: user.email,
-                                 GitUsers.state: user.state})
-
-                    for uu in git_user_list:
-                        if uu not in exist_user_list:
-                            session.query(GitUsers).filter(GitUsers.git_url == git_url, GitUsers.user_id == uu).delete(
-                                synchronize_session=False)
+                # users = gl.users.list(all=True)
+                # exist_user_list = []
+                # with DBContext('w', None, True) as session:
+                #     for user in users:
+                #         exist_user_list.append(user.id)
+                #         if user.id not in git_user_list:
+                #             session.add(
+                #                 GitUsers(git_url=git_url, user_id=user.id, name=user.name, username=user.username,
+                #                          email=user.email, state=user.state))
+                #         else:
+                #             session.query(GitUsers).filter(GitUsers.git_url == git_url,
+                #                                            GitUsers.user_id == user.id).update(
+                #                 {GitUsers.name: user.name, GitUsers.username: user.username, GitUsers.email: user.email,
+                #                  GitUsers.state: user.state})
+                #
+                #     for uu in git_user_list:
+                #         if uu not in exist_user_list:
+                #             session.query(GitUsers).filter(GitUsers.git_url == git_url, GitUsers.user_id == uu).delete(
+                #                 synchronize_session=False)
             return "执行完成"
         except Exception as e:
+            print(e)
             return '执行失败' + str(e)
 
     @gen.coroutine
