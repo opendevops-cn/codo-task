@@ -108,7 +108,7 @@ class DealMQ(MessageQueueBase):
 
                     for i in all_gid:
                         if i[0] == data_dict["task_group"]:
-                            level_list_info[i[0]].append(data_dict["task_level"])
+                            level_list_info[i[0]].append(int(data_dict["task_level"]))
                 redis_pipe.execute()
         threads = []
         #####取所有主机###
@@ -117,6 +117,7 @@ class DealMQ(MessageQueueBase):
             if i:
                 all_exec_ip = all_host_info.get(i)
                 level_list = list(set(level_list_info[i]))
+                level_list.sort()
                 print('level_list', level_list)
                 threads.append(multiprocessing.Process(target=self.run, args=(
                     lid, i, all_exec_ip, all_args_info, exec_user_dict, level_list)))
