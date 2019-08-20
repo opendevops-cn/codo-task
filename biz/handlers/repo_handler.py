@@ -8,9 +8,10 @@ Desc    : GIT仓库管理API
 """
 
 import datetime
+import shortuuid
 import gitlab
 import json
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, DATE
 from libs.base_handler import BaseHandler
 from .task_accept import create_task as acc_create_task
 from models.git_model import GitConf, GitGroup, GitUsers, GitRepo, HooksLog, model_to_dict
@@ -59,7 +60,57 @@ class GitTreeHandler(BaseHandler):
 
             return self.write(dict(code=0, msg='获取项目Tree成功', data=_tree))
         else:
-            return self.write(dict(code=0, msg='获取项目Tree失败', data=_tree))
+            return self.write(dict(code=-1, msg='获取项目Tree失败', data=_tree))
+
+
+class GitTree2Handler(BaseHandler):
+    def get(self, *args, **kwargs):
+        repo_list = []
+        with DBContext('r') as session:
+            repo_info = session.query(GitRepo).all()
+
+        for msg in repo_info:
+            data_dict = model_to_dict(msg)
+            if self.is_superuser:
+                repo_list.append(data_dict)
+
+            else:
+                if data_dict['user_info'] and self.get_current_email() in data_dict['user_info'].split(','):
+                    repo_list.append(data_dict)
+
+        _tree = [{"label": "all", "children": []}]
+
+        if repo_list:
+            tmp_tree = {"git_url": {}, "group_name": {}, "project_name": {}}
+            for t in repo_list:
+                git_url, group_name, project_name, gid = t["git_url"], t['group_name'], t['project_name'], t['id']
+                ssh_url_to_repo = t['ssh_url_to_repo']
+
+                # 因为是第一层所以没有parent
+                tmp_tree["git_url"][git_url] = {"label": git_url, "parent": "all", "children": [],
+                                                "id": shortuuid.uuid()}
+
+                tmp_tree["group_name"][git_url + "|" + group_name] = {
+                    "label": group_name, "parent": git_url, "children": [], "id": shortuuid.uuid()
+                }
+
+                tmp_tree["project_name"][git_url + "|" + group_name + "|" + project_name] = {
+                    "label": ssh_url_to_repo, "parent": git_url + "|" + group_name,
+                    "id": gid
+                }
+
+            for tmp_repo in tmp_tree["project_name"].values():
+                tmp_tree["group_name"][tmp_repo["parent"]]["children"].append(tmp_repo)
+
+            for tmp_group in tmp_tree["group_name"].values():
+                tmp_tree["git_url"][tmp_group["parent"]]["children"].append(tmp_group)
+
+            for tmp_git in tmp_tree["git_url"].values():
+                _tree[0]["children"].append(tmp_git)
+
+            return self.write(dict(code=0, msg='获取项目Tree成功', data=_tree[0]["children"]))
+        else:
+            return self.write(dict(code=-2, msg='获取项目Tree失败', data=_tree[0]["children"]))
 
 
 class GitRepoHandler(BaseHandler):
@@ -72,11 +123,11 @@ class GitRepoHandler(BaseHandler):
         if search_val:
             with DBContext('r') as session:
                 git_repo_info = session.query(GitRepo).filter(
-                    or_(GitRepo.group_name.like('%{}%'.format(search_val)),
-                        GitRepo.project_name.like('%{}%'.format(search_val)),
-                        GitRepo.relative_path.like('%{}%'.format(search_val)),
-                        GitRepo.ssh_url_to_repo.like('%{}%'.format(search_val)),
-                        GitRepo.git_url.like('%{}%'.format(search_val)))
+                    or_(GitRepo.group_name.like('{}%'.format(search_val)),
+                        GitRepo.project_name.like('{}%'.format(search_val)),
+                        GitRepo.relative_path.like('{}%'.format(search_val)),
+                        GitRepo.ssh_url_to_repo.like('{}%'.format(search_val)),
+                        GitRepo.git_url.like('{}%'.format(search_val)))
                 ).order_by(GitRepo.git_url, GitRepo.group_name).all()
 
         elif git_url and group_name:
@@ -271,12 +322,34 @@ class GitConfHandler(BaseHandler):
 
 
 class HooksLogHandler(BaseHandler):
-    @gen.coroutine
     def get(self, *args, **kwargs):
+        git_url = self.get_argument('git_url', default=None, strip=True)
+        relative_path = self.get_argument('relative_path', default=None, strip=True)
+        hook_name = self.get_argument('hook_name', default=None, strip=True)
+        search_val = self.get_argument('search_val', default=None, strip=True)
         log_list = []
 
         with DBContext('r') as session:
-            hooks_log_info = session.query(HooksLog).order_by(-HooksLog.id).limit(200).all()
+            if git_url and relative_path and hook_name:
+                offset = datetime.timedelta(days=-3)
+                re_date = (datetime.datetime.now() + offset).strftime('%Y-%m-%d')
+                hooks_log = session.query(HooksLog.logs_info).filter(HooksLog.git_url == git_url,
+                                                                     HooksLog.relative_path == relative_path,
+                                                                     HooksLog.hook_name == hook_name).filter(
+                    cast(HooksLog.create_time, DATE) > cast(re_date, DATE)).order_by(-HooksLog.id).first()
+
+                if hooks_log:
+                    return self.write(dict(code=0, msg='获取成功', data=hooks_log[0]))
+                else:
+
+                    return self.write(dict(code=-2, msg='未找到最近触发的任务', data=''))
+            elif search_val:
+                hooks_log_info = session.query(HooksLog).filter(
+                    or_(HooksLog.git_url.like('{}%'.format(search_val)),
+                        HooksLog.relative_path.like('{}%'.format(search_val)),
+                        HooksLog.logs_info.like('{}%'.format(search_val)))).order_by(-HooksLog.id).all()
+            else:
+                hooks_log_info = session.query(HooksLog).order_by(-HooksLog.id).limit(200).all()
 
         for msg in hooks_log_info:
             data_dict = model_to_dict(msg)
@@ -284,6 +357,16 @@ class HooksLogHandler(BaseHandler):
             log_list.append(data_dict)
 
         return self.write(dict(code=0, msg='获取成功', data=log_list))
+
+    def delete(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        day_ago = int(data.get('day_ago', 15))
+        offset = datetime.timedelta(days=-day_ago)
+        re_date = (datetime.datetime.now() + offset).strftime('%Y-%m-%d')
+        with DBContext('w', None, True) as session:
+            session.query(HooksLog).filter(cast(HooksLog.create_time, DATE) < cast(re_date, DATE)).delete(
+                synchronize_session=False)
+        return self.write(dict(code=0, msg='删除{}天前的数据成功'.format(day_ago)))
 
 
 class GitHookHandler(BaseHandler):
@@ -305,13 +388,12 @@ class GitHookHandler(BaseHandler):
             session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='收到请求：{}'.format(tag_name)))
 
             hook_info = session.query(GitRepo.git_hooks, GitRepo.ssh_url_to_repo, GitRepo.http_url_to_repo
-                                  ).filter(GitRepo.git_url == git_url, GitRepo.relative_path == relative_path).first()
+                                      ).filter(GitRepo.git_url == git_url,
+                                               GitRepo.relative_path == relative_path).first()
             if not hook_info:
-                # session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有查找到相关项目'))
                 return self.write(dict(code=0, msg='No related items were found'))
 
             if hook_info and not hook_info[0]:
-                # session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='没有配置钩子'))
                 return self.write(dict(code=0, msg='No hooks, ignore'))
             else:
                 try:
@@ -319,7 +401,7 @@ class GitHookHandler(BaseHandler):
                 except Exception as e:
                     session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info='钩子出错'))
                     return self.write(dict(code=2, msg='There was an error when the hook parameter was converted into '
-                                                       'a dictionary. Please check the relevant contents carefully' ))
+                                                       'a dictionary. Please check the relevant contents carefully'))
 
             tag_name_mate = None  ### 匹配到的标签或者分支
             for t in hook_dict.keys():
@@ -332,7 +414,7 @@ class GitHookHandler(BaseHandler):
             else:
                 the_hook = hook_dict[tag_name_mate]
 
-                hook_args = dict(TAG=tag_name,RELATIVE_PATH=relative_path, GIT_SSH_URL=hook_info[1],
+                hook_args = dict(TAG=tag_name, RELATIVE_PATH=relative_path, GIT_SSH_URL=hook_info[1],
                                  GIT_HTTP_URL=hook_info[2])
                 old_hook_args = the_hook.get('hook_args')
                 ### 参数字典
@@ -341,19 +423,23 @@ class GitHookHandler(BaseHandler):
                     hosts_dict.update(the_hook.get('hook_args'))
                     if old_hook_args.get('hosts_dict') and isinstance(old_hook_args.get('hosts_dict'), dict):
                         hosts_dict = old_hook_args.pop('hosts_dict')
-
-                msg = '匹配到钩子：{} 模板ID：{} 执行：{}，参数：{}'.format(tag_name_mate, the_hook.get('temp_id'),
-                                                            the_hook.get('schedule'), str(the_hook.get('hook_args')))
+                if the_hook.get('schedule') == "new":
+                    schedule_msg = "任务需要审批"
+                else:
+                    schedule_msg = "任务立即执行"
+                msg = '匹配到钩子：{}, {}'.format(tag_name_mate, schedule_msg)
                 if len(msg) > 200:
                     msg = msg[:200]
                 session.add(HooksLog(git_url=git_url, relative_path=relative_path, logs_info=msg))
 
-        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                         temp_id=the_hook.get('temp_id'), task_name=relative_path,
-                         schedule=the_hook.get('schedule','new'),
-                         submitter=self.get_current_nickname(), args=str(hook_args), hosts=str(hosts_dict))
-        return_data = acc_create_task(**data_info)
-        return self.write(return_data)
+            data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                             temp_id=the_hook.get('temp_id'), task_name=relative_path,
+                             schedule=the_hook.get('schedule', 'new'),
+                             submitter=self.get_current_nickname(), args=str(hook_args), hosts=str(hosts_dict))
+            return_data = acc_create_task(**data_info)
+            session.add(HooksLog(git_url=git_url, relative_path=relative_path, hook_name=tag_name_mate,
+                                 logs_info=str(return_data.get('list_id'))))
+            return self.write(return_data)
 
     def delete(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
@@ -518,14 +604,75 @@ class GitSyncHandler(BaseHandler):
             return self.write(dict(code=-1, msg='TimeOut'))
 
 
+async def get_tag(conf, project_id):
+    tag_list = []
+    gl = gitlab.Gitlab(conf.get('git_url'), private_token=conf.get('private_token'),
+                       api_version=conf.get('api_version'))
+    project = gl.projects.get(project_id)
+    tags = project.tags.list()
+    for t in tags:
+        tag_list.append(t.name)
+    return tag_list[:19]
+
+
+async def check_project_tags(git_url, project_id):
+    with DBContext('r') as session:
+        git_conf = session.query(GitConf).filter(GitConf.git_url == git_url).first()
+        git_conf = model_to_dict(git_conf)
+        res = await get_tag(git_conf, project_id)
+        return res
+
+
+class GitRepoTagHandler(BaseHandler):
+    async def get(self, *args, **kwargs):
+        git_url = self.get_argument('git_url', default=None, strip=True)
+        project_id = self.get_argument('project_id', default=None, strip=True)
+        if not git_url or not project_id:
+            return self.write(dict(code=-1, msg='关键参数不能为空'))
+        tag_list = await check_project_tags(git_url, project_id)
+        self.write(dict(code=0, msg='获取完成', data=tag_list))
+
+
+async def get_branches(conf, project_id):
+    branch_list = []
+    gl = gitlab.Gitlab(conf.get('git_url'), private_token=conf.get('private_token'),
+                       api_version=conf.get('api_version'))
+    project = gl.projects.get(project_id)
+    branches = project.branches.list()
+    for b in branches:
+        branch_list.append(b.name)
+    return branch_list
+
+
+async def check_project_branches(git_url, project_id):
+    with DBContext('r') as session:
+        git_conf = session.query(GitConf).filter(GitConf.git_url == git_url).first()
+        git_conf = model_to_dict(git_conf)
+        res = await get_branches(git_conf, project_id)
+        return res
+
+
+class GitRepoBranchHandler(BaseHandler):
+    async def get(self, *args, **kwargs):
+        git_url = self.get_argument('git_url', default=None, strip=True)
+        project_id = self.get_argument('project_id', default=None, strip=True)
+        if not git_url or not project_id:
+            return self.write(dict(code=-1, msg='关键参数不能为空'))
+        branch_list = await check_project_branches(git_url, project_id)
+        self.write(dict(code=0, msg='获取完成', data=branch_list))
+
+
 git_repo_urls = [
     (r"/other/v1/git/tree/", GitTreeHandler),
+    (r"/other/v1/git/tree2/", GitTree2Handler),
     (r"/other/v1/git/repo/", GitRepoHandler),
     (r"/other/v1/git/user/", GitUsersHandler),
     (r"/other/v1/git/conf/", GitConfHandler),
     (r"/other/v1/git/sync/", GitSyncHandler),
     (r"/other/v1/git/hooks/", GitHookHandler),
     (r"/other/v1/git/logs/", HooksLogHandler),
+    (r"/other/v1/git/tags/", GitRepoTagHandler),
+    (r"/other/v1/git/branches/", GitRepoBranchHandler),
 
 ]
 

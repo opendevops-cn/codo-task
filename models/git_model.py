@@ -82,7 +82,8 @@ class HooksLog(Base):
 
     ### 钩子日志
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    git_url = Column('git_url', String(120))  ###
-    relative_path = Column('relative_path', String(150))  ###
+    git_url = Column('git_url', String(120), nullable=False)  ###
+    relative_path = Column('relative_path', String(150), nullable=False)  ###
+    hook_name = Column('hook_name', String(100))  ###
     logs_info = Column('logs_info', String(255))  ###
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间

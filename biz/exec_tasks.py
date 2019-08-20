@@ -18,65 +18,97 @@ import time
 import datetime
 from models.scheduler import TaskList, TaskSched
 from libs.db_context import DBContext
+from websdk.tools import RunningProcess
 
-exec_timeout = 600
+exec_time = 1800
 
+
+# def exec_shell(log_key, real_cmd, cmd, redis_conn):
+#     redis_conn.publish("task_log", json.dumps(
+#         {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": "[CMD]: {}".format(cmd)}))
+#     start_time = time.time()
+#     sub = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#     while True:
+#         time.sleep(2)
+#         ret = subprocess.Popen.poll(sub)
+#         current_time = time.time()
+#         duration = current_time - start_time
+#         ### 处理输出
+#         try:
+#             for i in sub.stdout.readlines():
+#                 result = i.decode('utf-8')
+#                 if result.replace('\n', ''):
+#                     redis_conn.publish("task_log", json.dumps(
+#                         {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+#         except Exception as e:
+#             redis_conn.publish("task_log", json.dumps(
+#                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
+#
+#         ### 判断状态进行处理
+#         if ret == 0:
+#             try:
+#                 for i in sub.stdout.readlines():
+#                     result = i.decode('utf-8')
+#                     if result.replace('\n', ''):
+#                         redis_conn.publish("task_log", json.dumps(
+#                             {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+#             except Exception as e:
+#                 redis_conn.publish("task_log", json.dumps(
+#                     {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
+#             sub.communicate()
+#             break
+#         elif ret is None:
+#             if duration >= exec_time:
+#                 sub.terminate()
+#                 sub.wait()
+#                 sub.communicate()
+#                 redis_conn.publish("task_log", json.dumps(
+#                     {"log_key": log_key, "exec_time": int(round(time.time() * 1000)),
+#                      "result": "execute timeout, execute time {}, it's killed.".format(duration)}))
+#
+#                 break
+#         else:
+#             out, err = sub.communicate()
+#             try:
+#                 result = err.decode('utf-8').replace('\n', '')
+#             except Exception as e:
+#                 result = str(e)
+#
+#             redis_conn.publish("task_log", json.dumps(
+#                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+#             break
+#     return ret
 
 def exec_shell(log_key, real_cmd, cmd, redis_conn):
     redis_conn.publish("task_log", json.dumps(
         {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": "[CMD]: {}".format(cmd)}))
-    start_time = time.time()
-    sub = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    while True:
+
+    p = subprocess.Popen(real_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         universal_newlines=True)
+    rp = RunningProcess(p)
+
+    while rp.is_running():
         time.sleep(2)
-        ret = subprocess.Popen.poll(sub)
-        current_time = time.time()
-        duration = current_time - start_time
-        ### 处理输出
-        try:
-            for i in sub.stdout.readlines():
-                result = i.decode('utf-8')
-                if result.replace('\n', ''):
-                    redis_conn.publish("task_log", json.dumps(
-                        {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
-        except Exception as e:
+        result = rp.read_line()
+
+        redis_conn.publish("task_log", json.dumps(
+            {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+
+        if rp.is_timeout(exec_time):
             redis_conn.publish("task_log", json.dumps(
-                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)),
+                 "result": "execute timeout, timeout is {}, it's killed.".format(exec_time)}))
+            return rp.run_state
 
-        ### 判断状态进行处理
-        if ret == 0:
-            try:
-                for i in sub.stdout.readlines():
-                    result = i.decode('utf-8')
-                    if result.replace('\n', ''):
-                        redis_conn.publish("task_log", json.dumps(
-                            {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
-            except Exception as e:
-                redis_conn.publish("task_log", json.dumps(
-                    {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
-            sub.communicate()
-            break
-        elif ret is None:
-            if duration >= exec_timeout:
-                sub.terminate()
-                sub.wait()
-                sub.communicate()
-                redis_conn.publish("task_log", json.dumps(
-                    {"log_key": log_key, "exec_time": int(round(time.time() * 1000)),
-                     "result": "execute timeout, execute time {}, it's killed.".format(duration)}))
-
-                break
-        else:
-            out, err = sub.communicate()
-            try:
-                result = err.decode('utf-8').replace('\n', '')
-            except Exception as e:
-                result = str(e)
-
+    try:
+        for result in rp.unread_lines:
             redis_conn.publish("task_log", json.dumps(
                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
-            break
-    return ret
+    except Exception as e:
+        redis_conn.publish("task_log", json.dumps(
+            {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
+
+    return rp.run_state
 
 
 def convert(data):
@@ -188,17 +220,16 @@ class MyExecute:
 
         try:
             status = exec_shell(log_key, real_cmd, my_cmd, self.redis_conn)
-            if status is not 0:
-                status = 4
+            if status:
+                real_status = '3'
+            else:
+                real_status = '4'
+                
         except Exception as e:
             self.redis_conn.publish("task_log", json.dumps(
                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
-            status = -1
-
-        if status == 0:
-            real_status = '3'
-        else:
             real_status = '4'
+
         return real_status
 
     ### 任务调度函数
@@ -303,20 +334,6 @@ class MyExecute:
         ###阻塞
         for join_t in threads:
             join_t.join()
-
-    # def exec_thread_new(self):
-    #     ### 取所有主机 最多启动100个进程
-    #     pool_num = len(self.all_exec_ip.split(','))
-    #     if pool_num > 100:
-    #         pool_num = 100
-    #     with Pool(max_workers=pool_num) as executor:
-    #         future_tasks = [executor.submit(self.exec_main, the_ip) for the_ip in self.all_exec_ip.split(',')]
-    #
-    #     results = wait(future_tasks)
-    #     print(results)
-    #     print('主线程')
-    #
-    #     print('pool_num: {0} {1} task list-{2} group-{3}'.format(pool_num, 'xx', self.flow_id, self.group_id))
 
 
 if __name__ == "__main__":
