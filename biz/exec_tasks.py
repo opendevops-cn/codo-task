@@ -20,7 +20,7 @@ from models.scheduler import TaskList, TaskSched
 from libs.db_context import DBContext
 from websdk.tools import RunningProcess
 
-exec_time = 1800
+exec_timeout = 1800
 
 
 # def exec_shell(log_key, real_cmd, cmd, redis_conn):
@@ -94,10 +94,10 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
         redis_conn.publish("task_log", json.dumps(
             {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
 
-        if rp.is_timeout(exec_time):
+        if rp.is_timeout(exec_timeout):
             redis_conn.publish("task_log", json.dumps(
                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)),
-                 "result": "execute timeout, timeout is {}, it's killed.".format(exec_time)}))
+                 "result": "execute timeout, timeout is {}, it's killed.".format(exec_timeout)}))
             return rp.run_state
 
     try:
@@ -224,7 +224,7 @@ class MyExecute:
                 real_status = '3'
             else:
                 real_status = '4'
-                
+
         except Exception as e:
             self.redis_conn.publish("task_log", json.dumps(
                 {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))

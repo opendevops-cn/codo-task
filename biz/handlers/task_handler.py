@@ -126,7 +126,7 @@ class TaskCheckHandler(BaseHandler):
         new_args_list = []
         try:
             args_dict = literal_eval(task_info.args)
-        except Exception as e :
+        except Exception as e:
             print(str(e))
             args_dict = {}
 
@@ -140,7 +140,7 @@ class TaskCheckHandler(BaseHandler):
                     args_record.append(i[1])
                     if i[1] == k:
                         new_args_dict[i[0]] = v
-                        new_args_list.append({'args_key': i[0],'args_value': v})
+                        new_args_list.append({'args_key': i[0], 'args_value': v})
                 if k not in args_record:
                     new_args_dict[k] = v
                     new_args_list.append({'args_key': k, 'args_value': v})
@@ -275,7 +275,6 @@ class TaskCheckHandler(BaseHandler):
                         level_status[s[0]] = s[1]
                     else:
                         level_status[s[0]] = '3'
-            print(level_status)
             redis_conn.hmset(hash_key, level_status)
             redis_conn.expire(hash_key, 2592000)
 
@@ -340,6 +339,7 @@ def get_task_info(list_id, task_group, exec_ip, this_host_list):
 
 class HistoryListHandler(BaseHandler):
     def get(self, *args, **kwargs):
+        search_val = self.get_argument('search_val', default=None, strip=True)
         page_size = self.get_argument('page', default=1, strip=True)
         limit = self.get_argument('limit', default=500, strip=True)
         limit_start = (int(page_size) - 1) * int(limit)
@@ -350,8 +350,19 @@ class HistoryListHandler(BaseHandler):
 
         with DBContext('r') as session:
             count = session.query(TaskList).filter(TaskList.schedule == 'OK').count()
-            task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
-                -TaskList.list_id).offset(limit_start).limit(int(limit))
+            if search_val:
+                task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').filter(
+                    or_(TaskList.list_id.like('{}%'.format(search_val)),
+                        TaskList.task_type.like('{}%'.format(search_val)),
+                        TaskList.temp_id.like('{}%'.format(search_val)),
+                        TaskList.creator.like('{}%'.format(search_val)),
+                        TaskList.executor.like('{}%'.format(search_val)),
+                        TaskList.status.like('{}%'.format(search_val)),
+                        TaskList.task_name.like('{}%'.format(search_val)))).order_by(-TaskList.list_id).offset(
+                    limit_start).limit(int(limit))
+            else:
+                task_info = session.query(TaskList).filter(TaskList.schedule == 'OK').order_by(
+                    -TaskList.list_id).offset(limit_start).limit(int(limit))
 
         for msg in task_info:
             data_dict = model_to_dict(msg)
@@ -375,53 +386,16 @@ class TaskStatementHandler(BaseHandler):
             count = session.query(TaskList).count()
             task_info = session.query(TaskList.task_type, func.count(TaskList.task_type)).group_by(TaskList.task_type)
         for msg in task_info:
-            statement_list.append(dict(task_type=msg[0],task_len=msg[1]))
+            statement_list.append(dict(task_type=msg[0], task_len=msg[1]))
 
         return self.write(dict(code=0, msg="获取成功", data=statement_list, count=count))
-
-
-# class TaskLogHandler(BaseHandler):
-#     def get(self, *args, **kwargs):
-#         list_id = self.get_argument('list_id', default=1, strip=True)
-#         group = self.get_argument('task_group', default=None, strip=True)
-#         level = self.get_argument('task_level', default=None, strip=True)
-#         hosts = self.get_argument('exec_ip', default=None, strip=True)
-#         if not list_id or not group or not level or not hosts:
-#             return self.write(dict(status=-1, msg='参数不能为空'))
-#
-#         log_list = []
-#         with DBContext('readonly') as session:
-#             log_info = session.query(TaskLog.log_time, TaskLog.task_log).filter(TaskLog.list_id == list_id,
-#                                                                                 TaskLog.exec_ip == hosts,
-#                                                                                 TaskLog.task_group == group,
-#                                                                                 TaskLog.task_level == level).all()
-#         for i in log_info:
-#             log_list.append(dict(log_time=str(i[0]), task_log=str(i[1])))
-#
-#         self.write(dict(code=0, msg='获取日志成功', data=log_list))
-#
-#
-# class ListLogHandler(BaseHandler):
-#     def get(self, list_id):
-#         if not list_id:
-#             return self.write(dict(status=-1, msg='参数不能为空'))
-#
-#         log_list = []
-#         with DBContext('readonly') as session:
-#             log_info = session.query(TaskLog.log_time, TaskLog.task_log).filter(TaskLog.list_id == list_id).all()
-#         for i in log_info:
-#             log_list.append(dict(log_time=str(i[0]), task_log=str(i[1])))
-#
-#         self.write(dict(status=0, msg='获取日志成功', data=log_list))
 
 
 task_list_urls = [
     (r"/v2/task/list/", TaskListHandler),
     (r"/v2/task/check/", TaskCheckHandler),
     (r"/v2/task/check_history/", HistoryListHandler),
-    (r"/v2/task/statement/", TaskStatementHandler),
-    # (r"/v1/task/log/", TaskLogHandler),
-    # (r"/v1/task/log/(\d*)/", ListLogHandler),
+    (r"/v2/task/statement/", TaskStatementHandler)
 ]
 
 if __name__ == "__main__":
