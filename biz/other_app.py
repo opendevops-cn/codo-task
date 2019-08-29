@@ -14,6 +14,7 @@ from biz.handlers.task_log_handler import task_log_urls
 from biz.handlers.asset_info_handler import asset_info_urls
 from biz.handlers.task_submission_handler import opt_info_urls
 from biz.handlers.repo_handler import git_repo_urls
+from biz.handlers.publish_handler import project_publish_urls
 from biz.handlers.other_handler import other_urls
 
 class Application(myApplication):
@@ -28,6 +29,7 @@ class Application(myApplication):
         urls.extend(asset_info_urls)
         urls.extend(opt_info_urls)
         urls.extend(git_repo_urls)
+        urls.extend(project_publish_urls)
         urls.extend(other_urls)
         super(Application, self).__init__(urls, **settings)
 
