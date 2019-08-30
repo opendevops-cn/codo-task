@@ -340,6 +340,35 @@ class ExecutiveUserHandler(BaseHandler):
             session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).delete(synchronize_session=False)
         self.write(dict(code=0, msg='删除成功'))
 
+class TempArgsHandler(BaseHandler):
+    def get(self, *args, **kwargs):
+        temp_id = self.get_argument('temp_id', default=None, strip=True)
+        args_list = []
+
+        if not temp_id:
+            return self.write(dict(code=-1, msg='模板ID不能为空'))
+
+
+        with DBContext('r') as session:
+            temp_args = session.query(TempDetails.args).filter(TempDetails.temp_id == temp_id).all()
+            args_info = session.query(ArgsList).all()
+
+        for msg in temp_args:
+            if msg[0]:
+                for m in msg[0].split():
+                    args_list.append(m)
+
+        args_list = list(set(args_list))
+        if 'FLOW_ID' in args_list:
+            args_list.remove('FLOW_ID')
+
+        args_dict = {}
+        for msg in args_info:
+            data_dict = model_to_dict(msg)
+            if data_dict['args_self']:
+                args_dict[data_dict['args_self']] = data_dict['args_name']
+
+        return self.write(dict(code=0, msg="获取成功", data=args_list, args_dict=args_dict))
 
 def check_contain_chinese(check_str):
     for ch in check_str:
@@ -353,6 +382,7 @@ temp_urls = [
     (r"/v2/task_layout/details/", TempDetailsHandler),
     (r"/v2/task_layout/args/", ArgsHandler),
     (r"/v2/task_layout/user/", ExecutiveUserHandler),
+    (r"/v2/task_layout/temp/args/", TempArgsHandler),
     (r"/are_you_ok/", LivenessProbe),
 ]
 

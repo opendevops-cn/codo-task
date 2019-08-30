@@ -391,11 +391,12 @@ class TaskStatementHandler(BaseHandler):
         return self.write(dict(code=0, msg="获取成功", data=statement_list, count=count))
 
 
+
 task_list_urls = [
     (r"/v2/task/list/", TaskListHandler),
     (r"/v2/task/check/", TaskCheckHandler),
     (r"/v2/task/check_history/", HistoryListHandler),
-    (r"/v2/task/statement/", TaskStatementHandler)
+    (r"/v2/task/statement/", TaskStatementHandler),
 ]
 
 if __name__ == "__main__":
