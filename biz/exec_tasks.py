@@ -88,8 +88,11 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
     rp = RunningProcess(p)
 
     while rp.is_running():
-        time.sleep(2)
-        result = rp.read_line()
+        time.sleep(1)
+        try:
+            result = rp.read_line()
+        except Exception as e:
+            result = str(e)
 
         redis_conn.publish("task_log", json.dumps(
             {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
@@ -107,6 +110,7 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
     except Exception as e:
         redis_conn.publish("task_log", json.dumps(
             {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
+        return False
 
     return rp.run_state
 
