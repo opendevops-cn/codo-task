@@ -146,7 +146,7 @@ class ProjectHandler(BaseHandler):
                     new_dict['relative_path'] = data_dict['relative_path']
                     new_dict['ssh_url_to_repo'] = data_dict['ssh_url_to_repo']
                     new_dict['project_tag'] = ""
-                    new_dict['sql_true'] = False
+                    # new_dict['sql_true'] = False
                     new_dict['project_sql'] = ""
                     new_dict['tag_list'] = []
                     new_dict['project_level'] = 1
