@@ -317,8 +317,8 @@ class CustomTask(BaseHandler):
             server_ip_list.append(msg[0])
 
         hosts_dict = {first_group: ','.join(server_ip_list)}
-        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=temp_id,
-                         task_name='自定义任务', submitter=self.get_current_nickname(),
+        data_info = dict(exec_time=start_time, temp_id=temp_id, task_name='自定义任务',
+                         submitter=self.get_current_nickname(),
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='')
 
         return_data = acc_create_task(**data_info)
@@ -396,7 +396,7 @@ class CustomTaskProxy(BaseHandler):
         args_dict['SERVER_HOST'] = ','.join(hostnames)
 
         hosts_dict = {first_group: proxy_host}
-        data_info = dict(exec_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), temp_id=temp_id,
+        data_info = dict(exec_time=start_time, temp_id=temp_id,
                          task_name='自定义任务-代理', submitter=self.get_current_nickname(),
                          associated_user="", args=str(args_dict), hosts=str(hosts_dict), schedule='new', details='')
 
