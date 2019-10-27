@@ -11,8 +11,10 @@ import base64
 import datetime
 import json
 from .task_accept import create_task as acc_create_task
+from sqlalchemy import or_
 from libs.base_handler import BaseHandler
-from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, TaskPublishConfig, model_to_dict
+from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, TaskPublishConfig, CommonJobsModel, \
+    model_to_dict
 from models.git_model import GitRepo
 from models.scheduler import TempList, TempDetails
 from websdk.db_context import DBContext
@@ -173,8 +175,8 @@ class MySqlAudit(BaseHandler):
             if not temp_info:
                 return self.write(dict(code=-2, msg='关联的任务模板有误，快去检查！'))
 
-            db_info = session.query(DB).outerjoin(DBTag, DB.id == DBTag.db_id).outerjoin(Tag, Tag.id == DBTag.tag_id
-                                                                                         ).filter(
+            db_info = session.query(DB).outerjoin(DBTag, DB.id == DBTag.db_id).outerjoin(Tag,
+                                                                                         Tag.id == DBTag.tag_id).filter(
                 Tag.tag_name == str(tag), DB.db_type == 'mysql', DB.db_mark == '写')
             proxy_host = session.query(Tag.proxy_host).filter(Tag.tag_name == tag).first()[0]
             inception_info = session.query(ProxyInfo.inception).filter(ProxyInfo.proxy_host == proxy_host).first()[0]
@@ -285,18 +287,17 @@ class CustomTask(BaseHandler):
         data = json.loads(self.request.body.decode("utf-8"))
         tag = data.get('tag', None)
         temp_id = data.get('temp_id', None)
-        hostnames = data.get('hostnames', None)
-        args_items = data.get('args_items', None)
-        start_time = data.get('start_time', None)
+        hostnames = data.get('hostnames')
+        args_items = data.get('args_items')
+        start_time = data.get('start_time')
         start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(hours=8)
+
         if not tag or not start_time or not temp_id:
             return self.write(dict(code=-1, msg='必填项不能为空'))
 
-        if len(hostnames) == 0:
-            return self.write(dict(code=-2, msg='必须有主机才行啊'))
+        if not hostnames: return self.write(dict(code=-2, msg='必须有主机才行啊'))
 
-        if len(hostnames) > 100:
-            return self.write(dict(code=-3, msg='并发主机不能超过100'))
+        if len(hostnames) > 100: return self.write(dict(code=-3, msg='并发主机不能超过100'))
 
         args_dict = {}
         if args_items:
@@ -308,10 +309,12 @@ class CustomTask(BaseHandler):
         with DBContext('r') as session:
             server_info = session.query(Server.ip).filter(Server.hostname.in_(hostnames))
             first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
-                TempDetails.group).first()[0]
+                TempDetails.group).first()
 
         if not first_group:
             return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
+        else:
+            first_group = first_group[0]
 
         for msg in server_info:
             server_ip_list.append(msg[0])
@@ -364,15 +367,13 @@ class CustomTaskProxy(BaseHandler):
         if not tag or not start_time or not temp_id:
             return self.write(dict(code=-1, msg='必填项不能为空'))
 
-        if len(hostnames) == 0:
-            return self.write(dict(code=-2, msg='必须有主机才行啊'))
+        if not hostnames: return self.write(dict(code=-2, msg='必须有主机才行啊'))
 
-        if len(proxy_list) != 1:
-            return self.write(dict(code=-2, msg='代理主机选择错误，有且只能有一个'))
+        if len(proxy_list) != 1: return self.write(dict(code=-2, msg='代理主机选择错误，有且只能有一个'))
 
         proxy_host = proxy_list[0]
-        if len(hostnames) > 100:
-            return self.write(dict(code=-3, msg='并发主机不能超过100'))
+
+        if len(hostnames) > 100:  return self.write(dict(code=-3, msg='并发主机不能超过100'))
 
         args_dict = {}
         if args_items:
@@ -384,10 +385,12 @@ class CustomTaskProxy(BaseHandler):
         with DBContext('r') as session:
             server_info = session.query(Server.ip).filter(Server.hostname.in_(hostnames))
             first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
-                TempDetails.group).first()[0]
+                TempDetails.group).first()
 
         if not first_group:
             return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
+        else:
+            first_group = first_group[0]
 
         for msg in server_info:
             server_ip_list.append(msg[0])
@@ -440,13 +443,13 @@ class PostTaskHandler(BaseHandler):
             temp_info = session.query(TempList).filter(TempList.temp_id == temp_id).first()
 
             first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
-                TempDetails.group).first()[0]
+                TempDetails.group).first()
 
         if not temp_info:
             return self.write(dict(code=-3, msg='关联的任务模板有误，快去检查！'))
 
         if not first_group:
-            return self.write(dict(code=-4, msg='要确保当前模板已经配置完成'))
+            return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
 
         return_data = acc_create_task(**post_data)
         return self.write(return_data)
@@ -470,10 +473,10 @@ class AssetPurchase(BaseHandler):
             first_group = session.query(TempDetails.group).filter(TempDetails.temp_id == temp_id).order_by(
                 TempDetails.group).first()
 
-            if not first_group:
-                return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
-            else:
-                first_group = first_group[0]
+        if not first_group:
+            return self.write(dict(code=-4, msg='当前模板配置有误-{}'.format(temp_id)))
+        else:
+            first_group = first_group[0]
 
         args_dict = data
         if host_env:
@@ -506,6 +509,144 @@ class AssetPurchase(BaseHandler):
         return self.write(return_data)
 
 
+class CommonJobsHandler(BaseHandler):
+    ### 保存到常用任务，记录任务常用的任务
+
+    def get(self, *args, **kwargs):
+        key = self.get_argument('key', default=None, strip=True)
+        # value = self.get_argument('value', default=None, strip=True)
+        page_size = self.get_argument('page', default=1, strip=True)
+        limit = self.get_argument('limit', default="15", strip=True)
+        limit_start = (int(page_size) - 1) * int(limit)
+        nickname = self.get_current_nickname()
+
+        common_jobs_list = []
+        with DBContext('r') as session:
+            # TODO 做搜索
+            if key:
+                # TODO 超级管理员做搜索
+                if self.is_superuser:
+                    count = session.query(CommonJobsModel).filter(
+                        or_(CommonJobsModel.task_name.like('%{}%'.format(key)))).count()
+
+                    common_jobs_info = session.query(CommonJobsModel).filter(
+                        or_(CommonJobsModel.task_name.like('%{}%'.format(key))))
+                else:
+                    # TODO 普通用户做搜素
+
+                    count = session.query(CommonJobsModel).filter(or_(CommonJobsModel.creator == nickname,
+                                                                      CommonJobsModel.authorized_user.like(
+                                                                          '%{}%'.format(nickname)))).filter(
+                        CommonJobsModel.task_name.like('%{}%'.format(key))).count()
+
+                    common_jobs_info = session.query(CommonJobsModel).filter(or_(CommonJobsModel.creator == nickname,
+                                                                                 CommonJobsModel.authorized_user.like(
+                                                                                     '%{}%'.format(nickname)))).filter(
+                        CommonJobsModel.task_name.like('%{}%'.format(key))).all()
+
+            # TODO 正常分页展示
+            else:
+                # TODO 超级管理员展示所有
+                if self.is_superuser:
+                    count = session.query(CommonJobsModel).count()
+                    common_jobs_info = session.query(CommonJobsModel).offset(limit_start).limit(int(limit))
+
+                else:
+                    # TODO 普通用户前端只展示有权限的
+                    count = session.query(CommonJobsModel).filter(or_(CommonJobsModel.creator == nickname,
+                                                                      CommonJobsModel.authorized_user.like(
+                                                                          '%{}%'.format(nickname)))).count()
+
+                    common_jobs_info = session.query(CommonJobsModel).filter(or_(CommonJobsModel.creator == nickname,
+                                                                                 CommonJobsModel.authorized_user.like(
+                                                                                     '%{}%'.format(nickname)))).offset(
+                        limit_start).limit(int(limit))
+
+            for msg in common_jobs_info:
+                data_dict = model_to_dict(msg)
+                data_dict['create_time'] = str(data_dict['create_time'])
+                data_dict['update_time'] = str(data_dict['update_time'])
+                common_jobs_list.append(data_dict)
+
+            self.write(dict(code=0, msg='获取成功', count=count, data=common_jobs_list))
+
+    def post(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        task_name = data.get('task_name')
+        nickname = self.get_current_nickname()
+        tag = data.get('tag')
+        temp_id = data.get('temp_id')
+        hosts_name = data.get('hostnames', None)
+        args_items = data.get('args_items', None)
+        detail = data.get('detail', None)
+
+        if not task_name:  return self.write(dict(code=-1, msg='任务名称不能为空'))
+
+        if not tag or not temp_id: return self.write(dict(code=-1, msg='必填项不能为空'))
+
+        if not hosts_name: return self.write(dict(code=-2, msg='必须有主机才行啊'))
+
+        if len(hosts_name) > 100: return self.write(dict(code=-3, msg='并发主机不能超过100'))
+
+        # 记录到常用任务
+        with DBContext('w', None, True) as session:
+            exist_task_name = session.query(CommonJobsModel.id).filter(CommonJobsModel.task_name == task_name).first()
+            # 不存在则Add
+            if exist_task_name: return self.write(dict(code=-2, msg='任务名称-{0}已经存在'.format(task_name)))
+
+            session.add(CommonJobsModel(creator=nickname, task_name=task_name, tag=tag, temp_id=temp_id,
+                                        hosts_name=','.join(hosts_name), authorized_user=nickname,
+                                        args_items=json.dumps(args_items), detail=detail))
+
+        return self.write(dict(code=0, msg='任务保存成功'))
+
+    def put(self, *args, **kwargs):
+
+        data = json.loads(self.request.body.decode("utf-8"))
+        task_name = data.get('task_name')
+        tag = data.get('tag')
+        temp_id = data.get('temp_id')
+        args_items = data.get('args_items')
+        detail = data.get('detail')
+
+        if not task_name:  return self.write(dict(code=-1, msg='任务名称不能为空'))
+
+        if not tag or not temp_id: return self.write(dict(code=-1, msg='必填项不能为空'))
+
+        with DBContext('w', None, True) as session:
+            session.query(CommonJobsModel).filter(CommonJobsModel.task_name == task_name).update(
+                dict(task_name=task_name, tag=tag, args_items=json.dumps(args_items), detail=detail))
+
+        return self.write(dict(code=0, msg='任务修改成功'))
+
+    def patch(self, *args, **kwargs):
+        ## 把自己的保存作业授权给别人
+
+        data = json.loads(self.request.body.decode("utf-8"))
+        task_name = data.get('task_name')
+        authorized_user = data.get('authorized_user')
+
+        if not task_name or not authorized_user:
+            return self.write(dict(code=-1, msg='必填项不能为空'))
+
+        with DBContext('w', None, True) as session:
+            session.query(CommonJobsModel).filter(CommonJobsModel.task_name == task_name).update(
+                {CommonJobsModel.authorized_user: ','.join(authorized_user)})
+
+        return self.write(dict(code=0, msg='授权成功'))
+
+    def delete(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        job_id = data.get('id')
+
+        if not job_id: return self.write(dict(code=-2, msg='关键参数不能为空'))
+
+        with DBContext('w', None, True) as session:
+            session.query(CommonJobsModel).filter(CommonJobsModel.id == job_id).delete(synchronize_session=False)
+
+        self.write(dict(code=0, msg='删除成功'))
+
+
 class AssetPurchaseAWS(BaseHandler):
     def post(self, *args, **kwargs):
         return self.write(dict(code=-1, msg='此方法暂无'))
@@ -533,6 +674,7 @@ opt_info_urls = [
     (r"/other/v1/submission/purchase_aws/", AssetPurchase),
     (r"/other/v1/submission/purchase_aly/", AssetPurchase),
     (r"/other/v1/submission/purchase_qcloud/", AssetPurchase),
+    (r"/other/v1/submission/common_jobs/", CommonJobsHandler),
 ]
 if __name__ == "__main__":
     pass
