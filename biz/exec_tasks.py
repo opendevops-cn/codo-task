@@ -94,8 +94,12 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
         except Exception as e:
             result = str(e)
 
-        redis_conn.publish("task_log", json.dumps(
-            {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+        try:
+            redis_conn.publish("task_log", json.dumps(
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": result}))
+        except Exception as err:
+            redis_conn.publish("task_log", json.dumps(
+                {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(err)}))
 
         if rp.is_timeout(exec_timeout):
             redis_conn.publish("task_log", json.dumps(
@@ -110,7 +114,6 @@ def exec_shell(log_key, real_cmd, cmd, redis_conn):
     except Exception as e:
         redis_conn.publish("task_log", json.dumps(
             {"log_key": log_key, "exec_time": int(round(time.time() * 1000)), "result": str(e)}))
-        return False
 
     return rp.run_state
 

@@ -144,3 +144,20 @@ class ProxyInfo(Base):
     inception = Column('inception', String(300))
     salt = Column('salt', String(300))
     detail = Column('detail', String(20))
+
+
+class CommonJobsModel(Base):
+    __tablename__ = 'common_jobs'
+
+    ### 作业中心--常用作业
+    id = Column('id', Integer, primary_key=True, autoincrement=True)  # 自增ID
+    task_name = Column('task_name', String(255), unique=True, index=True, nullable=False)  # 任务名称 唯一
+    tag = Column('tag', String(255))  # TAG名字
+    temp_id = Column('temp_id', String(20))  # 模板ID
+    hosts_name = Column('hosts_name', Text())  # 目标主机
+    args_items = Column('args_items', Text())  # 参数
+    creator = Column('creator', String(255))  # 创建人,修改人
+    authorized_user = Column('authorized_user', String(255))  # 授权用户
+    detail = Column('detail', String(80))  # 描述
+    create_time = Column('create_time', DateTime(), default=datetime.now)  # 创建时间
+    update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
