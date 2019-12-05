@@ -55,7 +55,7 @@ settings = dict(
     expire_seconds=expire_seconds,
     sign_name=sign_name,
     template_code=template_code,
-    app_name='codo_task_scheduler',
+    app_name='codo-task',
     databases={
         const.DEFAULT_DB_KEY: {
             const.DBHOST_KEY: DEFAULT_DB_DBHOST,

@@ -509,13 +509,19 @@ class GitSyncHandler(BaseHandler):
                         user_list = ','.join(user_id_list) if user_id_list else ''
 
                         if group.id not in git_group_list:
-                            session.add(GitGroup(git_url=git_url, group_id=group.id, group_name=group.name,
-                                                 description=group.description, user_list=user_list))
+                            try:
+                                session.add(GitGroup(git_url=git_url, group_id=group.id, group_name=group.name,
+                                                     description=group.description, user_list=user_list))
+                            except Exception as err:
+                                print(err)
                         else:
-                            session.query(GitGroup).filter(GitGroup.git_url == git_url,
-                                                           GitGroup.group_id == group.id).update(
-                                {GitGroup.group_name: group.name, GitGroup.description: group.description,
-                                 GitGroup.user_list: user_list})
+                            try:
+                                session.query(GitGroup).filter(GitGroup.git_url == git_url,
+                                                               GitGroup.group_id == group.id).update(
+                                    {GitGroup.group_name: group.name, GitGroup.description: group.description,
+                                     GitGroup.user_list: user_list})
+                            except Exception as err:
+                                print(err)
 
                         # print('[组]', git_url, group.name)
 
@@ -542,20 +548,29 @@ class GitSyncHandler(BaseHandler):
                             email_list = ','.join(user_email_list) if user_email_list else ''
 
                             if project.id not in git_repo_list:
-                                session.add(GitRepo(git_url=git_url, group_id=group_list.id, group_name=group_list.name,
-                                                    project_id=project.id,
-                                                    ssh_url_to_repo=project.ssh_url_to_repo,
-                                                    http_url_to_repo=project.http_url_to_repo,
-                                                    project_name=project.name,
-                                                    relative_path=project.path_with_namespace, user_info=email_list))
+                                try:
+                                    session.add(GitRepo(git_url=git_url, group_id=group_list.id,
+                                                        group_name=group_list.name, project_id=project.id,
+                                                        ssh_url_to_repo=project.ssh_url_to_repo,
+                                                        http_url_to_repo=project.http_url_to_repo,
+                                                        project_name=project.name,
+                                                        relative_path=project.path_with_namespace,
+                                                        user_info=email_list))
+                                except Exception as err:
+                                    print(err)
+
                             else:
-                                session.query(GitRepo).filter(GitRepo.git_url == git_url,
-                                                              GitRepo.group_id == group_list.id,
-                                                              GitRepo.project_id == project.id).update(
-                                    {GitRepo.ssh_url_to_repo: project.ssh_url_to_repo,
-                                     GitRepo.http_url_to_repo: project.http_url_to_repo,
-                                     GitRepo.project_name: project.name,
-                                     GitRepo.relative_path: project.path_with_namespace, GitRepo.user_info: email_list})
+                                try:
+                                    session.query(GitRepo).filter(GitRepo.git_url == git_url,
+                                                                  GitRepo.group_id == group_list.id,
+                                                                  GitRepo.project_id == project.id).update(
+                                        {GitRepo.ssh_url_to_repo: project.ssh_url_to_repo,
+                                         GitRepo.http_url_to_repo: project.http_url_to_repo,
+                                         GitRepo.project_name: project.name,
+                                         GitRepo.relative_path: project.path_with_namespace,
+                                         GitRepo.user_info: email_list})
+                                except Exception as e:
+                                    print(e)
 
                     session.commit()
 
@@ -605,13 +620,11 @@ class GitSyncHandler(BaseHandler):
 
 
 async def get_tag(conf, project_id):
-    tag_list = []
     gl = gitlab.Gitlab(conf.get('git_url'), private_token=conf.get('private_token'),
                        api_version=conf.get('api_version'))
     project = gl.projects.get(project_id)
     tags = project.tags.list()
-    for t in tags:
-        tag_list.append(t.name)
+    tag_list = [t.name for t in tags]
     return tag_list[:19]
 
 
@@ -634,13 +647,11 @@ class GitRepoTagHandler(BaseHandler):
 
 
 async def get_branches(conf, project_id):
-    branch_list = []
     gl = gitlab.Gitlab(conf.get('git_url'), private_token=conf.get('private_token'),
                        api_version=conf.get('api_version'))
     project = gl.projects.get(project_id)
     branches = project.branches.list()
-    for b in branches:
-        branch_list.append(b.name)
+    branch_list = [b.name for b in branches]
     return branch_list
 
 
