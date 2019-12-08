@@ -11,7 +11,9 @@ import json
 from sqlalchemy import or_
 from libs.base_handler import BaseHandler
 from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, model_to_dict
+# from models.task_other import  BusinessModel, ProjectModel
 from websdk.db_context import DBContext
+from websdk.tools import check_contain_chinese
 
 
 class DBHandler(BaseHandler):
@@ -504,7 +506,7 @@ class TAGHandler(BaseHandler):
 
             session.query(ServerTag).filter(ServerTag.tag_id == int(tag_id)).delete(synchronize_session=False)
             session.add_all([ServerTag(server_id=i, tag_id=tag_id) for i in server_id_list])
-            
+
             users = ','.join(users) if users else None
             session.query(Tag).filter(Tag.id == int(tag_id)).update({Tag.users: users, Tag.proxy_host: proxy_host})
             session.commit()
@@ -584,6 +586,90 @@ class ProxyHostHandler(BaseHandler):
         self.write(dict(code=0, msg='删除成功'))
 
 
+class BusinessTreeHandler(BaseHandler):
+    def get(self, *args, **kwargs):
+        project_code = self.get_argument('project_code', default=None, strip=True)
+
+        with DBContext('r') as session:
+            config_info = session.query(BusinessModel).filter(BusinessModel.project_code == project_code).all()
+
+        config_list = [model_to_dict(msg) for msg in config_info]
+
+        _tree = [{"expand": True, "title": project_code, "children": [], "data_type": 'project'}]
+
+        if config_list:
+            tmp_tree = {"environ": {}, "service": {}}
+
+            for t in config_list:
+                service, environ = t['service'], t["environment"]
+
+                # 因为是第一层所以没有parent
+                tmp_tree["environ"][environ] = {
+                    "expand": False, "title": environ, "parent": "root", "children": [], "data_type": 'env'
+                }
+
+                # 父节点是对应的environ
+                tmp_tree["service"][environ + "|" + service] = {
+                    "expand": False, "title": service, "parent": environ,
+                    "children": [], "data_type": 'service'
+                }
+            # service的数据插入到environ的children中
+            for tmpService in tmp_tree["service"].values():
+                tmp_tree["environ"][tmpService["parent"]]["children"].append(tmpService)
+
+            for tmpEnviron in tmp_tree["environ"].values():
+                if tmpEnviron not in ["all", "all_env"]:
+                    _tree[0]["children"].append(tmpEnviron)
+            return self.write(dict(code=0, msg='获取项目Tree成功', data=_tree))
+        else:
+            return self.write(dict(code=0, msg='获取项目Tree失败', data=_tree))
+
+
+class BusinessProjectHandler(BaseHandler):
+    def get(self, *args, **kwargs):
+        with DBContext('r') as session:
+            project_info = session.query(ProjectModel).all()
+
+        # project_list = [model_to_dict(msg) for msg in project_info]
+        project_list = []
+        for msg in project_info:
+            data_dict = model_to_dict(msg)
+            if data_dict.get('user_list'):
+                data_dict['user_list'] = data_dict.get('user_list').split(',')
+
+            project_list.append(data_dict)
+
+        self.write(dict(code=0, msg='获取成功', data=project_list))
+
+    def post(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        project_code = data.get('project_code')
+        project_name = data.get('project_name')
+        user_list = data.get('user_list', '')
+        if not project_code or not project_name: return self.write(dict(code=-1, msg='关键参数不能为空'))
+
+        if check_contain_chinese(project_code): return self.write(dict(code=-2, msg='项目代号或者英文名称不能有汉字'))
+
+        if not isinstance(user_list, str): return self.write(dict(code=-3, msg='应为字符串'))
+
+        with DBContext('w', None, True) as session:
+            session.add(ProjectModel(project_name=project_name, project_code=project_code, user_list=user_list))
+
+        self.write(dict(code=0, msg='添加完成'))
+
+    def put(self, *args, **kwargs):
+        data = json.loads(self.request.body.decode("utf-8"))
+        project_id = data.get('project_id')
+        user_list = data.get('user_list')
+        if not project_id: return self.write(dict(code=-1, msg='关键参数不能为空'))
+
+        with DBContext('w', None, True) as session:
+            session.query(ProjectModel).filter(ProjectModel.project_id == project_id).update(
+                {ProjectModel.user_list: user_list})
+
+        self.write(dict(code=0, msg='修改完成'))
+
+
 asset_info_urls = [
     (r"/other/v1/record/db/", DBHandler),
     (r"/other/v1/record/server/", ServerHandler),
@@ -591,6 +677,8 @@ asset_info_urls = [
     (r"/other/v1/record/tag/", TAGHandler),
     (r"/other/v1/record/tag_auth/", TagAuthority),
     (r"/other/v1/record/proxy/", ProxyHostHandler),
+    # (r"/other/v1/record/business/tree/", BusinessTreeHandler),
+    # (r"/other/v1/record/business/project/", BusinessProjectHandler),
 ]
 if __name__ == "__main__":
     pass

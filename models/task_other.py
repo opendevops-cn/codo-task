@@ -39,10 +39,10 @@ class DockerRegistry(Base):
 
     ### 镜像仓库，手动录入相关的项目
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    project_name = Column('project_name',  String(20),unique=True)   ###  docker 仓库项目地址
+    project_name = Column('project_name', String(20), unique=True)  ###  docker 仓库项目地址
     registry_url = Column('registry_url', String(150), unique=True)  ### 仓库地址
-    user_name = Column('user_name', String(20))         ### 用户账户
-    password = Column('password', String(80))           ### 用户密码
+    user_name = Column('user_name', String(20))  ### 用户账户
+    password = Column('password', String(80))  ### 用户密码
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间
 
 
@@ -56,24 +56,24 @@ class TaskPublishConfig(Base):
     repository = Column('repository', String(300))  ### 仓库地址
     build_host = Column('build_host', String(20))  ### 构建主机
     exclude_file = Column('exclude_file', String(200))  ### 排除文件
-    temp_name  = Column('temp_name', String(30))  ### 任务模板
+    temp_name = Column('temp_name', String(30))  ### 任务模板
     publish_type1 = Column('publish_type1', String(20))  ### 简单  灰度  蓝绿
-    publish_path = Column('publish_path', String(35))   ### 发布路径
-    config_file = Column('config_file', String(500))    ### 配置文件
+    publish_path = Column('publish_path', String(35))  ### 发布路径
+    config_file = Column('config_file', String(500))  ### 配置文件
     publish_hosts = Column('publish_hosts', String(400))  ### 发布主机
     publish_hosts_api = Column('publish_hosts_api', String(120))  ### 发布主机
     tag_name = Column('tag_name', String(35))  ###  关联标签
     bucket_type = Column('bucket_type', String(20))  ### 存储桶信息
-    region =  Column('region', String(50))  ### 存储桶信息
-    bucket_name =  Column('bucket_name', String(50))  ### 存储桶信息
-    bucket_path =  Column('bucket_path', String(60))  ### 存储的路径
-    SecretID =  Column('SecretID', String(60))  ###
-    SecretKey =  Column('SecretKey', String(120))  ###
-    docker_registry  = Column('docker_registry', String(200))         ### docker 镜像仓库地址
-    k8s_api   = Column('k8s_api', String(200))                ### K8S API地址
-    k8s_host = Column('k8s_host', String(30))                 ### K8S master地址
-    namespace = Column('namespace', String(80))               ### 命名空间
-    mail_to = Column('mail_to', String(500))                  ### 任务中邮件发送人
+    region = Column('region', String(50))  ### 存储桶信息
+    bucket_name = Column('bucket_name', String(50))  ### 存储桶信息
+    bucket_path = Column('bucket_path', String(60))  ### 存储的路径
+    SecretID = Column('SecretID', String(60))  ###
+    SecretKey = Column('SecretKey', String(120))  ###
+    docker_registry = Column('docker_registry', String(200))  ### docker 镜像仓库地址
+    k8s_api = Column('k8s_api', String(200))  ### K8S API地址
+    k8s_host = Column('k8s_host', String(30))  ### K8S master地址
+    namespace = Column('namespace', String(80))  ### 命名空间
+    mail_to = Column('mail_to', String(500))  ### 任务中邮件发送人
     create_time = Column('create_time', DateTime(), default=datetime.now)  ### 创建时间
 
 
@@ -86,6 +86,7 @@ class Tag(Base):
     users = Column('users', String(1000))  ### 用户
     proxy_host = Column('proxy_host', String(35))  ### 代理主机 适配多云
     create_time = Column('create_time', DateTime(), default=datetime.now, onupdate=datetime.now)
+
 
 class DBTag(Base):
     __tablename__ = 'asset_db_tag'
@@ -102,6 +103,7 @@ class ServerTag(Base):
     server_id = Column('server_id', Integer)
     tag_id = Column('tag_id', Integer)
 
+
 class DB(Base):
     __tablename__ = 'asset_db'
     ### 数据库集群
@@ -109,9 +111,9 @@ class DB(Base):
     db_code = Column('db_code', String(50))  ### 名称 代号 编码
     db_host = Column('db_host', String(80), nullable=False)
     db_port = Column('db_port', String(5), nullable=False, default=3306)
-    db_user = Column('db_user', String(20), nullable=False,default='root')
-    db_pwd = Column('db_pwd', String(30),nullable=False)
-    db_env = Column('db_env', String(10), nullable=False,default='写')
+    db_user = Column('db_user', String(20), nullable=False, default='root')
+    db_pwd = Column('db_pwd', String(30), nullable=False)
+    db_env = Column('db_env', String(10), nullable=False, default='写')
     proxy_host = Column('proxy_host', String(35))  ### 代理主机 适配多云
     db_type = Column('db_type', String(10))  ### 标记类型
     db_mark = Column('db_mark', String(10))  ### 标记读写备
@@ -126,7 +128,7 @@ class Server(Base):
 
     ### 服务器
     id = Column(Integer, primary_key=True, autoincrement=True)
-    hostname = Column('hostname', String(100), unique=True,nullable=False)
+    hostname = Column('hostname', String(100), unique=True, nullable=False)
     ip = Column('ip', String(20))
     idc = Column('idc', String(25))
     region = Column('region', String(25))
@@ -140,7 +142,7 @@ class ProxyInfo(Base):
 
     ### 代理主机  通过此主机来连接数据库
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    proxy_host = Column('proxy_host', String(100),unique=True, nullable=False)
+    proxy_host = Column('proxy_host', String(100), unique=True, nullable=False)
     inception = Column('inception', String(300))
     salt = Column('salt', String(300))
     detail = Column('detail', String(20))
@@ -161,3 +163,30 @@ class CommonJobsModel(Base):
     detail = Column('detail', String(80))  # 描述
     create_time = Column('create_time', DateTime(), default=datetime.now)  # 创建时间
     update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
+
+
+# class ProjectModel(Base):
+#     __tablename__ = 'business_project'
+#
+#     ### 项目表
+#     project_id = Column('project_id', Integer, primary_key=True, autoincrement=True)
+#
+#     project_code = Column('project_code', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
+#     project_name = Column('project_name', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
+#     user_list = Column('user_list', Text())  # 授权用户
+#
+#
+# class BusinessModel(Base):
+#     __tablename__ = 'business_tree'
+#     bt_id = Column('bt_id', Integer, primary_key=True, autoincrement=True)
+#     project_code = Column('project_code', String(30), index=True, default='unknown')
+#     environment = Column('environment', String(20), index=True, default='unknown')
+#     service = Column('service', String(30), index=True, default='unknown')
+#     update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
+#
+#
+# class BusinessServer(Base):
+#     __tablename__ = 'business_server'
+#     id = Column('id', Integer, primary_key=True, autoincrement=True)
+#     bt_id = Column('bt_id', Integer)
+#     server_id = Column('server_id', Integer)
