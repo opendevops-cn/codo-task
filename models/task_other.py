@@ -165,28 +165,28 @@ class CommonJobsModel(Base):
     update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
 
 
-class ProjectModel(Base):
-    __tablename__ = 'business_project'
-
-    ### 项目表
-    project_id = Column('project_id', Integer, primary_key=True, autoincrement=True)
-
-    project_code = Column('project_code', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
-    project_name = Column('project_name', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
-    user_list = Column('user_list', Text())  # 授权用户
-
-
-class BusinessModel(Base):
-    __tablename__ = 'business_tree'
-    bt_id = Column('bt_id', Integer, primary_key=True, autoincrement=True)
-    project_code = Column('project_code', String(30), index=True, default='unknown')
-    environment = Column('environment', String(20), index=True, default='unknown')
-    service = Column('service', String(30), index=True, default='unknown')
-    update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
-
-
-class BusinessServer(Base):
-    __tablename__ = 'business_server'
-    id = Column('id', Integer, primary_key=True, autoincrement=True)
-    bt_id = Column('bt_id', Integer)
-    server_id = Column('server_id', Integer)
+# class ProjectModel(Base):
+#     __tablename__ = 'business_project'
+#
+#     ### 项目表
+#     project_id = Column('project_id', Integer, primary_key=True, autoincrement=True)
+#
+#     project_code = Column('project_code', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
+#     project_name = Column('project_name', String(30), unique=True, nullable=False)  ## 这里不要太长，会影响格式
+#     user_list = Column('user_list', Text())  # 授权用户
+#
+#
+# class BusinessModel(Base):
+#     __tablename__ = 'business_tree'
+#     bt_id = Column('bt_id', Integer, primary_key=True, autoincrement=True)
+#     project_code = Column('project_code', String(30), index=True, default='unknown')
+#     environment = Column('environment', String(20), index=True, default='unknown')
+#     service = Column('service', String(30), index=True, default='unknown')
+#     update_time = Column('update_time', DateTime(), default=datetime.now, onupdate=datetime.now)  # 记录更新时间
+#
+#
+# class BusinessServer(Base):
+#     __tablename__ = 'business_server'
+#     id = Column('id', Integer, primary_key=True, autoincrement=True)
+#     bt_id = Column('bt_id', Integer)
+#     server_id = Column('server_id', Integer)

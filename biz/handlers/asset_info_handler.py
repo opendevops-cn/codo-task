@@ -10,7 +10,8 @@ Desc    :
 import json
 from sqlalchemy import or_
 from libs.base_handler import BaseHandler
-from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, BusinessModel, ProjectModel, model_to_dict
+from models.task_other import DB, DBTag, Tag, ServerTag, Server, ProxyInfo, model_to_dict
+# from models.task_other import  BusinessModel, ProjectModel
 from websdk.db_context import DBContext
 from websdk.tools import check_contain_chinese
 

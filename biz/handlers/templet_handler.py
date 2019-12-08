@@ -6,24 +6,56 @@ date   : 2017年10月17日17:23:19
 desc   : 任务调度模板管理
 """
 import json, datetime
+from sqlalchemy import or_
 from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
 from websdk.base_handler import LivenessProbe
+from websdk.tools import check_contain_chinese
 from models.scheduler import CommandList, TempList, TempDetails, ArgsList, TempToUser, ExecuteUser, model_to_dict
 
 
 class CommandHandler(BaseHandler):
     def get(self, *args, **kwargs):
-        key = self.get_argument('key', default=None, strip=True)
-        value = self.get_argument('value', default=None, strip=True)
+        search_value = self.get_argument('search_value', default=None, strip=True)
+        page_size = self.get_argument('page', default=1, strip=True)
+        limit = self.get_argument('limit', default=201, strip=True)
+        limit_start = (int(page_size) - 1) * int(limit)
         cmd_list = []
 
         with DBContext('r') as session:
-            if key and value:
+            if search_value:
+                count = session.query(CommandList).filter(or_(CommandList.command_id.like('{}%'.format(search_value)),
+                                                              CommandList.command_name.like('{}%'.format(search_value)),
+                                                              CommandList.command.like('{}%'.format(search_value)),
+                                                              CommandList.args.like('{}%'.format(search_value)),
+                                                              CommandList.force_host.like('{}%'.format(search_value)),
+                                                              CommandList.creator.like(
+                                                                  '{}%'.format(search_value)))).count()
 
-                cmd_info = session.query(CommandList).filter_by(**{key: value}).order_by(CommandList.command_id).all()
-            else:
+                cmd_info = session.query(CommandList).filter(
+                    or_(CommandList.command_id.like('{}%'.format(search_value)),
+                        CommandList.command_name.like('{}%'.format(search_value)),
+                        CommandList.command.like('{}%'.format(search_value)),
+                        CommandList.args.like('{}%'.format(search_value)),
+                        CommandList.force_host.like('{}%'.format(search_value)),
+                        CommandList.creator.like('{}%'.format(search_value)))).offset(limit_start).limit(int(limit))
+                if limit > 200:
+                    cmd_info = session.query(CommandList).filter(
+                        or_(CommandList.command_id.like('{}%'.format(search_value)),
+                            CommandList.command_name.like('{}%'.format(search_value)),
+                            CommandList.command.like('{}%'.format(search_value)),
+                            CommandList.args.like('{}%'.format(search_value)),
+                            CommandList.force_host.like('{}%'.format(search_value)),
+                            CommandList.creator.like('{}%'.format(search_value)))).all()
+
+            elif limit > 200:  ### 获取全部
+                count = session.query(CommandList).count()
                 cmd_info = session.query(CommandList).order_by(CommandList.command_id).all()
+
+            else:  ## 默认分页查询
+                count = session.query(CommandList).count()
+                cmd_info = session.query(CommandList).order_by(CommandList.command_id).offset(limit_start).limit(
+                    int(limit))
 
         for msg in cmd_info:
             data_dict = model_to_dict(msg)
@@ -31,7 +63,7 @@ class CommandHandler(BaseHandler):
             data_dict['update_time'] = str(data_dict['update_time'])
             cmd_list.append(data_dict)
 
-        return self.write(dict(code=0, msg='获取成功', data=cmd_list))
+        return self.write(dict(code=0, msg='获取成功', data=cmd_list, count=count))
 
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
@@ -82,22 +114,48 @@ class CommandHandler(BaseHandler):
 
 class ArgsHandler(BaseHandler):
     def get(self, *args, **kwargs):
-        key = self.get_argument('key', default=None, strip=True)
-        value = self.get_argument('value', default=None, strip=True)
+        search_value = self.get_argument('search_value', default=None, strip=True)
+        page_size = self.get_argument('page', default=1, strip=True)
+        limit = self.get_argument('limit', default=201, strip=True)
+        limit_start = (int(page_size) - 1) * int(limit)
         args_list = []
 
         with DBContext('r') as session:
-            if key and value:
-                args_info = session.query(ArgsList).filter_by(**{key: value}).order_by(ArgsList.args_id).all()
-            else:
+            if search_value:
+                count = session.query(ArgsList).filter(or_(ArgsList.args_id.like('{}%'.format(search_value)),
+                                                           ArgsList.args_name.like('{}%'.format(search_value)),
+                                                           ArgsList.args_self.like('{}%'.format(search_value)),
+                                                           ArgsList.creator.like(
+                                                               '{}%'.format(search_value)))).count()
+
+                args_info = session.query(ArgsList).filter(
+                    or_(ArgsList.args_id.like('{}%'.format(search_value)),
+                        ArgsList.args_name.like('{}%'.format(search_value)),
+                        ArgsList.args_self.like('{}%'.format(search_value)),
+                        ArgsList.creator.like('{}%'.format(search_value)))).offset(limit_start).limit(int(limit))
+
+                if limit > 200:
+                    args_info = session.query(ArgsList).filter(
+                        or_(ArgsList.args_id.like('{}%'.format(search_value)),
+                            ArgsList.args_name.like('{}%'.format(search_value)),
+                            ArgsList.args_self.like('{}%'.format(search_value)),
+                            ArgsList.creator.like('{}%'.format(search_value)))).all()
+
+            elif limit > 200:  ### 获取全部
+                count = session.query(ArgsList).count()
                 args_info = session.query(ArgsList).order_by(ArgsList.args_id).all()
+
+            else:  ## 默认分页查询
+                count = session.query(ArgsList).count()
+                args_info = session.query(ArgsList).order_by(ArgsList.args_id).offset(limit_start).limit(
+                    int(limit))
 
         for msg in args_info:
             data_dict = model_to_dict(msg)
             data_dict['update_time'] = str(data_dict['update_time'])
             args_list.append(data_dict)
 
-        return self.write(dict(code=0, msg='获取成功', data=args_list))
+        return self.write(dict(code=0, msg='获取成功', data=args_list, count=count))
 
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
@@ -279,7 +337,7 @@ class ExecutiveUserHandler(BaseHandler):
         data = json.loads(self.request.body.decode("utf-8"))
         alias_user = data.get('alias_user', None)
         exec_user = data.get('exec_user', None)
-        ssh_port = data.get('ssh_port', None)
+        ssh_port = data.get('ssh_port', 22)
         user_key = data.get('user_key', None)
         remarks = data.get('remarks', None)
 
@@ -312,15 +370,9 @@ class ExecutiveUserHandler(BaseHandler):
         user_key = data.get('user_key', None)
         remarks = data.get('remarks', None)
 
-        if not exec_user or not user_key:
-            return self.write(dict(code=-1, msg='不能为空'))
-
-        if check_contain_chinese(alias_user):
-            return self.write(dict(code=-1, msg='名称不能有汉字'))
-
-        if check_contain_chinese(exec_user):
-            return self.write(dict(code=-1, msg='名称不能有汉字'))
-
+        if not exec_user or not user_key:  return self.write(dict(code=-1, msg='不能为空'))
+        if check_contain_chinese(alias_user): return self.write(dict(code=-2, msg='项目代号或者英文名称不能有汉字'))
+        if check_contain_chinese(exec_user):  return self.write(dict(code=-1, msg='系统用户名称不能有汉字'))
 
         with DBContext('w', None, True) as session:
             session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).update({ExecuteUser.exec_user: exec_user,
@@ -332,13 +384,14 @@ class ExecutiveUserHandler(BaseHandler):
 
     def delete(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
-        exec_user_id = data.get('exec_user_id', None)
-        if not exec_user_id:
-            return self.write(dict(code=-1, msg='ID不能为空'))
+        exec_user_id = data.get('exec_user_id')
+
+        if not exec_user_id: return self.write(dict(code=-1, msg='ID不能为空'))
 
         with DBContext('w', None, True) as session:
             session.query(ExecuteUser).filter(ExecuteUser.id == exec_user_id).delete(synchronize_session=False)
         self.write(dict(code=0, msg='删除成功'))
+
 
 class TempArgsHandler(BaseHandler):
     def get(self, *args, **kwargs):
@@ -348,15 +401,13 @@ class TempArgsHandler(BaseHandler):
         if not temp_id:
             return self.write(dict(code=-1, msg='模板ID不能为空'))
 
-
         with DBContext('r') as session:
             temp_args = session.query(TempDetails.args).filter(TempDetails.temp_id == temp_id).all()
             args_info = session.query(ArgsList).all()
 
         for msg in temp_args:
-            if msg[0]:
-                for m in msg[0].split():
-                    args_list.append(m)
+            if isinstance(msg, list) and msg[0]:
+                args_list = [m for m in msg[0].split()]
 
         args_list = list(set(args_list))
         if 'FLOW_ID' in args_list:
@@ -370,11 +421,6 @@ class TempArgsHandler(BaseHandler):
 
         return self.write(dict(code=0, msg="获取成功", data=args_list, args_dict=args_dict))
 
-def check_contain_chinese(check_str):
-    for ch in check_str:
-        if u'\u4e00' <= ch <= u'\u9fff':
-            return True
-    return False
 
 temp_urls = [
     (r"/v2/task_layout/command/", CommandHandler),

@@ -34,16 +34,16 @@ class CodeRepositoryHandler(BaseHandler):
 
     def post(self, *args, **kwargs):
         data = json.loads(self.request.body.decode("utf-8"))
-        app_name = data.get('app_name', None)
-        repository = data.get('repository', None)
-        description = data.get('description', None)
-        if not app_name or not repository:
-            return self.write(dict(code=-1, msg='参数不能为空'))
+        app_name = data.get('app_name')
+        repository = data.get('repository')
+        description = data.get('description')
+
+        if not app_name: return self.write(dict(code=-1, msg='app_name参数不能为空'))
+        if not repository: return self.write(dict(code=-2, msg='repository参数不能为空'))
 
         with DBContext('r') as session:
             is_exist = session.query(TaskCodeRepository.id).filter(TaskCodeRepository.repository == repository).first()
-        if is_exist:
-            return self.write(dict(code=-2, msg='不能重复'))
+            if is_exist: return self.write(dict(code=-2, msg='不能重复'))
 
         with DBContext('w', None, True) as session:
             session.add(TaskCodeRepository(app_name=app_name, repository=repository, description=description))
