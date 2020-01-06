@@ -11,25 +11,21 @@ import json
 from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
 from models.task_other import TaskCodeRepository, DockerRegistry, TaskPublishConfig, model_to_dict
+from websdk.model_utils import queryset_to_list, model_to_dict
 
 
 class CodeRepositoryHandler(BaseHandler):
     def get(self, *args, **kwargs):
         key = self.get_argument('key', default=None, strip=True)
         value = self.get_argument('value', default=None, strip=True)
-        repository_list = []
 
         with DBContext('r') as session:
             if key and value:
                 repository_info = session.query(TaskCodeRepository).filter_by(**{key: value}).all()
             else:
-                repository_info = session.query(TaskCodeRepository).order_by(TaskCodeRepository.id).all()
+                repository_info = session.query(TaskCodeRepository).all()
 
-        for msg in repository_info:
-            data_dict = model_to_dict(msg)
-            data_dict['create_time'] = str(data_dict['create_time'])
-            repository_list.append(data_dict)
-
+        repository_list = queryset_to_list(repository_info)
         return self.write(dict(code=0, msg='获取成功', data=repository_list))
 
     def post(self, *args, **kwargs):
