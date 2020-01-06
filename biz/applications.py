@@ -27,8 +27,7 @@ class Application(myApplication):
     def temp_init(self, **settings):
         with DBContext('w', None, True, **settings) as session:
             is_exist = session.query(TempList.temp_id).filter(TempList.temp_id == 200).first()
-            if is_exist:
-                return
+            if is_exist: return True
 
             session.add(TempList(temp_id=200, temp_name='内置命令起始', creator='system'))
             session.add(TempList(temp_name='示例模板0', creator='system'))

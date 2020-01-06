@@ -179,16 +179,16 @@ class TaskCheckHandler(BaseHandler):
 
         ### 编组别名暂无
         admin_user = literal_eval(task_info.associated_user).get("admin")
-        associated_user = "管理员：{}".format(" ".join(admin_user))
-        if nickname in admin_user or self.is_superuser:
-            approval_button = True
-        else:
-            approval_button = False
-
+        # 流程管理人员/模板管理员
+        associated_user = "，".join(admin_user)
         # 审批按钮
+        approval_button = False
+        if nickname in admin_user or self.is_superuser: approval_button = True
+
         # 干预按钮
 
-        data_dict = dict(create_time=str(task_info.create_time), start_time=str(task_info.start_time),
+        data_dict = dict(create_time=str(task_info.create_time),
+                         start_time=str(task_info.start_time),
                          username=self.get_current_user(), creator=task_info.creator,
                          executor=task_info.executor, new_args=new_args_dict, new_args_list=new_args_list,
                          schedule=task_info.schedule,
@@ -389,7 +389,6 @@ class TaskStatementHandler(BaseHandler):
             statement_list.append(dict(task_type=msg[0], task_len=msg[1]))
 
         return self.write(dict(code=0, msg="获取成功", data=statement_list, count=count))
-
 
 
 task_list_urls = [

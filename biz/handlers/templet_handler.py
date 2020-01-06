@@ -398,26 +398,22 @@ class TempArgsHandler(BaseHandler):
         temp_id = self.get_argument('temp_id', default=None, strip=True)
         args_list = []
 
-        if not temp_id:
-            return self.write(dict(code=-1, msg='模板ID不能为空'))
+        if not temp_id: return self.write(dict(code=-1, msg='模板ID不能为空'))
 
         with DBContext('r') as session:
             temp_args = session.query(TempDetails.args).filter(TempDetails.temp_id == temp_id).all()
             args_info = session.query(ArgsList).all()
 
-        for msg in temp_args:
-            if isinstance(msg, list) and msg[0]:
-                args_list = [m for m in msg[0].split()]
+        for msg in temp_args: args_list = [m for m in msg[0].split()]
 
         args_list = list(set(args_list))
-        if 'FLOW_ID' in args_list:
-            args_list.remove('FLOW_ID')
+
+        if 'FLOW_ID' in args_list: args_list.remove('FLOW_ID')
 
         args_dict = {}
         for msg in args_info:
             data_dict = model_to_dict(msg)
-            if data_dict['args_self']:
-                args_dict[data_dict['args_self']] = data_dict['args_name']
+            if data_dict['args_self']: args_dict[data_dict['args_self']] = data_dict['args_name']
 
         return self.write(dict(code=0, msg="获取成功", data=args_list, args_dict=args_dict))
 
