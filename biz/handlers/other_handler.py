@@ -10,7 +10,7 @@ Desc    : 其他
 import json
 from libs.base_handler import BaseHandler
 from websdk.db_context import DBContext
-from models.task_other import TaskCodeRepository, DockerRegistry, TaskPublishConfig, model_to_dict
+from models.task_other import TaskCodeRepository, DockerRegistry, TaskPublishConfig
 from websdk.model_utils import queryset_to_list, model_to_dict
 
 
@@ -90,7 +90,7 @@ class DockerRepositoryHandler(BaseHandler):
     def get(self, *args, **kwargs):
         key = self.get_argument('key', default=None, strip=True)
         value = self.get_argument('value', default=None, strip=True)
-        repository_list = []
+        # repository_list = []
 
         with DBContext('r') as session:
             if key and value:
@@ -98,10 +98,11 @@ class DockerRepositoryHandler(BaseHandler):
             else:
                 repository_info = session.query(DockerRegistry).order_by(DockerRegistry.id).all()
 
-        for msg in repository_info:
-            data_dict = model_to_dict(msg)
-            data_dict['create_time'] = str(data_dict['create_time'])
-            repository_list.append(data_dict)
+        repository_list = queryset_to_list(repository_info)
+        # for msg in repository_info:
+        #     data_dict = model_to_dict(msg)
+        #     data_dict['create_time'] = str(data_dict['create_time'])
+        #     repository_list.append(data_dict)
 
         return self.write(dict(code=0, msg='获取成功', data=repository_list))
 
@@ -142,7 +143,7 @@ class PublishCDHandler(BaseHandler):
     def get(self, *args, **kwargs):
         key = self.get_argument('key', default=None, strip=True)
         value = self.get_argument('value', default=None, strip=True)
-        publish_app_list = []
+        # publish_app_list = []
 
         with DBContext('r') as session:
             if key and value:
@@ -150,10 +151,11 @@ class PublishCDHandler(BaseHandler):
             else:
                 publish_info = session.query(TaskPublishConfig).order_by(TaskPublishConfig.id).all()
 
-        for msg in publish_info:
-            data_dict = model_to_dict(msg)
-            data_dict['create_time'] = str(data_dict['create_time'])
-            publish_app_list.append(data_dict)
+        publish_app_list = queryset_to_list(publish_info)
+        # for msg in publish_info:
+        #     data_dict = model_to_dict(msg)
+        #     data_dict['create_time'] = str(data_dict['create_time'])
+        #     publish_app_list.append(data_dict)
 
         return self.write(dict(code=0, msg='获取成功', data=publish_app_list))
 
